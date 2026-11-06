@@ -4,7 +4,49 @@
 
 > 项目状态：**可运行的 Skill 与 Python 导出工具**，不是无需模型的「一张图自动变成完整动画」服务。复杂动作需要具备图像生成能力的智能体先制作连续关键帧；Python 脚本承担合成、压缩与验证。视觉效果需要人工审核。
 
-## V3.0｜真正逐帧角色表演（当前默认）
+## V3.1｜默认 16 张微信表情包，每张 16 帧，分 4 批制作
+
+**不用再指定每套多少张。** 上传你有权使用的原创 IP 角色参考图，说「做一套表情包」，现在默认自动创建 **16 个独立 GIF × 每个 GIF 16 张真正不同的角色动作帧 = 256 张动作帧**；按 **每批 4 个 GIF** 分批生成与审核，每批需 64 张动作帧。**动作帧必须由具备绘图/图像生成能力的智能体或创作者实际制作，Python 工具不能凭空画出动作。**
+
+固定默认文案（按批次）：
+
+| 批次 | 4 个表情 | 独立 GIF | 计划动作帧 |
+| --- | --- | ---: | ---: |
+| 第 1 批 | 好的、收到、谢谢、点赞 | 4 | 64 |
+| 第 2 批 | 哈哈哈、爱你哟、委屈、大哭 | 4 | 64 |
+| 第 3 批 | 生气、无语、疑惑、震惊 | 4 | 64 |
+| 第 4 批 | 么么哒、加油、拜拜、晚安 | 4 | 64 |
+| **总计** | **16 种不同的动作表演** | **16** | **256** |
+
+快速开始：
+
+~~~sh
+# 默认的16张表情，每张16帧，自动分成4个批次。角色参考图保留在本地工作区。
+python scripts/studio_v3.py plan --character "一然" --reference "private/role.png" --output workspaces/yiran
+
+# 请有图像生成能力的 Codex / 智能体按照 prompts/ 和 batches/ 的分镜，
+# 为第1批4个动作各制作000.png到015.png的16张独立透明角色姿势图
+# 检查后只输出第1批四张 GIF / 对应质量报告 / ZIP，无需预先完成第2—4批
+python scripts/studio_v3.py build workspaces/yiran/production.json --font "/path/to/CJK-Font.ttf" --heart
+
+# 查看已完成批次与下一批；依次补全其他批次关键帧，并再次执行上一条 build
+python scripts/studio_v3.py status workspaces/yiran/production.json
+
+# 全部批次制作且技术检查通过后，程序自动导出 build/complete-pack.zip
+# 已经具备全部关键帧时，也可以显式逐批构建：
+python scripts/studio_v3.py build workspaces/yiran/production.json --font "/path/to/CJK-Font.ttf" --all
+
+# 手动重组最终 ZIP（必须先完成全部批次）
+python scripts/studio_v3.py assemble workspaces/yiran/production.json
+~~~
+
+也可指定预设数量：\`--count 1\`、\`--count 4\`、\`--count 8\`、\`--count 16\`、\`--count 24\` 或 \`--count 32\`；程序也支持 1–32 范围内其他明确数量。自定义文案优先于默认清单，例如 \`--actions "哇,收到,哼,晚安"\`；指定 \`--count\` 和 \`--actions\` 时数量须一致。不足 4 张的尾批次会按实际张数生成。
+
+保留 V3 完整逐帧表演门禁、固定字幕和微信体积验证，不允许自动降级到一张图摇摆的轻动态。**自动测试通过不等于表演已由用户验收或微信官方审核通过。**
+
+阅读 [V3.1 批量生产指南](references/v31.md) 和 [V3 动作表演质量规范](references/v3.md)。
+
+## V3.0｜完整动作技术规范（兼容旧项目）
 
 **已从「合成和压缩 GIF」升级为具备表演动作门禁的工作流**。V3 不能凭空生成关键姿势：需要有图像生成能力的 Codex/智能体或画师，先制作角色 16 张连续动作 PNG。针对你反馈的「人物没动作、只有轻动态」，现在会对裁剪对齐后的姿势进行比较，只有整图平移、缩放或少量重复画面会被拦截，**不会自动偷偷退回轻动态模式**。
 

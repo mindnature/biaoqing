@@ -1,4 +1,4 @@
 interface:
-  display_name: "思然 GIF Studio V3"
-  short_description: "真正逐帧角色表演：头脸与手臂协同动作，禁止轻动态冒充"
-  default_prompt: "使用 $siran-gif-studio 的 V3 真正逐帧角色表演模式，根据我上传的原创角色图规划并生成16帧连续动作，先检查角色不变形和身体表演，再导出微信GIF。绝对不要用轻微弹跳、摇摆或单张图片变形冒充完整动作。"
+  display_name: "思然 GIF Studio V3.1"
+  short_description: "默认16个表情，每个16帧逐帧表演，每批4个"
+  default_prompt: "使用 $siran-gif-studio V3.1，根据我上传的原创角色图制作一套微信动态表情包。没有另外指定时默认16个表情，每个16张真实不同的动作帧，每批4个顺序制作。先检查人物表演动作、角色一致性及字幕，再导出。严禁仅用静态图摇摆冒充真正逐帧动画。"

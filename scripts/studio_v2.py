@@ -279,18 +279,25 @@ def repair(source: Path, corrections: Path, dest: Path, count: int = FRAME_COUNT
     return log
 
 
-def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int = 500000, heart: bool = False, min_output_frames: int = 4):
+def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int = 500000, heart: bool = False, min_output_frames: int = 4, selected_slugs: set[str] | None = None, build_dir: Path | None = None):
     from export_keyframes import make_frames, save_and_verify
     from wechat_export import export_one
 
     project = _project(project_file)
     root = project_file.parent
+    destination = build_dir if build_dir is not None else root / "build"
+    actions = project["actions"]
+    if selected_slugs is not None:
+        valid = {entry["slug"] for entry in actions}
+        if not selected_slugs or selected_slugs - valid:
+            raise ValueError(f"Invalid selected action slugs: {selected_slugs - valid}")
+        actions = [entry for entry in actions if entry["slug"] in selected_slugs]
     compiled = []
-    for action in project["actions"]:
+    for action in actions:
         frames = read_frames(root / action["frames_dir"], action.get("frame_count", FRAME_COUNT))
         report = analyze(frames)
         compiled.append((action, frames, report))
-    reports = root / "build" / "reports"
+    reports = destination / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     for action, frames, report in compiled:
         _save_json(reports / f"{action['slug']}.json", report)
@@ -304,23 +311,23 @@ def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int
     output = []
     for action, frames, report in compiled:
         slug = action["slug"]
-        atlas_path = root / "build" / "atlases" / f"{slug}.png"
+        atlas_path = destination / "atlases" / f"{slug}.png"
         atlas(frames, atlas_path)
         entry = {"text": action["caption"], "render_caption": False,
                  "frames": [{"cell": [i % GRID, i//GRID], "duration": action.get("keyframes", [{}] * len(frames))[i].get("duration_ms", 120)}
                             for i in range(len(frames))]}
         with Image.open(atlas_path) as source:
             raw_frames, durations = make_frames(source.convert("RGBA"), [GRID, GRID], entry, font, 0)
-        raw_path = root / "build" / "raw" / f"{slug}.gif"
+        raw_path = destination / "raw" / f"{slug}.gif"
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         save_and_verify(raw_path, raw_frames, durations)
-        done_path = root / "build" / "wechat" / f"{slug}.gif"
+        done_path = destination / "wechat" / f"{slug}.gif"
         export = export_one(raw_path, done_path, max_bytes,
                             text=action["caption"], font=font, heart=heart, min_frames=min_output_frames)
         output.append({"caption": action["caption"], "slug": slug, "gif": str(done_path),
                        "export": export, "quality": report["status"],
                        "visual_acceptance": "pending"})
-    zip_path = root / "build" / "wechat-pack.zip"
+    zip_path = destination / "wechat-pack.zip"
     with ZipFile(zip_path, "w", ZIP_DEFLATED) as archive:
         for entry in output:
             archive.write(entry["gif"], arcname=Path(entry["gif"]).name)
@@ -332,7 +339,7 @@ def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int
             raise ValueError("ZIP integrity check failed")
     record = {"status": "technical_export_complete", "actions": output, "zip": str(zip_path),
               "warnings": warnings, "user_acceptance": "pending"}
-    _save_json(root / "build" / "summary.json", record)
+    _save_json(destination / "summary.json", record)
     return record
 
 

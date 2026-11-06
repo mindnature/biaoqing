@@ -61,7 +61,7 @@ def test_insufficient_frame_count_is_rejected():
 def test_plan_marks_full_acting_and_sample_timing(tmp_path):
     p = plan_v3('一然', 'user-reference.png', ['哼','收到'], tmp_path/'project')
     assert p['motion_mode'] == 'full_character_performance'
-    assert p['version'] == '3.0'
+    assert p['version'] == '3.1'
     assert p['actions'][0]['keyframes'][0]['duration_ms'] == 140
     prompt = (tmp_path/'project'/'prompts'/'hmph.txt').read_text(encoding='utf8')
     assert '禁止仅轻动态' in prompt
@@ -87,7 +87,7 @@ def test_build_rejects_fake_bounce_before_generating_zip(tmp_path):
         f.save(folder / f'{i:03d}.png')
     with pytest.raises(ValueError, match='full-performance gate blocked'):
         build_v3(root/'production.json', 'DejaVuSans.ttf')
-    assert not (root/'build'/'wechat-pack.zip').exists()
+    assert not (root/'build'/'batch-01'/'wechat-pack.zip').exists()
 
 def test_end_to_end_acting_exports_gif_and_zip(tmp_path):
     from zipfile import ZipFile
@@ -100,11 +100,11 @@ def test_end_to_end_acting_exports_gif_and_zip(tmp_path):
     result = build_v3(root / 'production.json', 'DejaVuSans.ttf', max_bytes=500000)
     assert result['v3_full_performance'] is True
     assert result['visual_acceptance'] == 'pending'
-    output = root / 'build' / 'wechat' / 'custom-01.gif'
+    output = root / 'build' / 'batch-01' / 'wechat' / 'custom-01.gif'
     assert output.is_file() and output.stat().st_size <= 500000
     with Image.open(output) as im:
         assert im.n_frames >= 12
         assert im.info['loop'] == 0
         assert sum(f.info['duration'] for f in ImageSequence.Iterator(im)) == 16 * 140
-    with ZipFile(root / 'build' / 'wechat-pack.zip') as bundle:
+    with ZipFile(root / 'build' / 'batch-01' / 'wechat-pack.zip') as bundle:
         assert bundle.testzip() is None
