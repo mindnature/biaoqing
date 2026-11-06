@@ -111,3 +111,50 @@ def test_pack_style_locked_once_across_all_batches(tmp_path):
     assert _locked_caption_style(project, root, [], "auto", "auto") == one
     with pytest.raises(ValueError, match="locked"):
         _locked_caption_style(project, root, [], "cute", "auto")
+
+
+def paper_watercolor():
+    """Synthetic parchment-like illustration, no third-party image asset."""
+    im = Image.new("RGBA", (256, 256), "#F4EBDD")
+    d = ImageDraw.Draw(im)
+    d.ellipse((85, 45, 188, 162), fill="#DCA57D")
+    d.rounded_rectangle((79, 155, 190, 242), radius=10, fill="#51463E")
+    return im
+
+
+def test_paper_illustration_recognized_as_ink_brush():
+    expected = choose_caption_design([paper_watercolor()], appearance="illustration")
+    assert expected.name == "brush", expected
+    assert expected.placement == "upper_left"
+    assert expected.fill == "#2E2925"
+    assert choose_caption_design([paper_watercolor()]).name == "brush"
+
+
+def test_ink_title_at_top_left_without_heavy_sticker_outline():
+    design = choose_caption_design([paper_watercolor()], style="brush")
+    out = render_frame(paper_watercolor(), 240, "OK", "DejaVuSans.ttf",
+                       design=design, brush_font="DejaVuSans.ttf")
+    upper_left = out.crop((4, 5, 115, 92)).convert("RGB")
+    # Dark ink title appears in a restrained top-left zone, not center-bottom.
+    dark_count = sum(1 for r, g, b in upper_left.getdata() if max(r, g, b) < 105)
+    assert dark_count > 30
+    assert out.size == (240, 240)
+
+
+def test_auto_brush_requires_genuine_local_brush_font(tmp_path):
+    src = tmp_path / "paper.gif"
+    frames = [paper_watercolor() for _ in range(5)]
+    for i, im in enumerate(frames):
+        ImageDraw.Draw(im).line((120, 150, 140+i*3, 171),
+                                fill="#554134", width=5)
+    frames[0].save(src, save_all=True, append_images=frames[1:],
+                   duration=140, loop=0, disposal=2)
+    with pytest.raises(ValueError, match="brush-font"):
+        export_one(src, tmp_path / "out.gif", 500000,
+                   text="OK", font="DejaVuSans.ttf")
+    result = export_one(src, tmp_path / "out.gif", 500000,
+                        text="OK", font="DejaVuSans.ttf",
+                        brush_font="DejaVuSans.ttf")
+    assert result["caption_style"] == "brush"
+    assert result["caption_placement"] == "upper_left"
+    assert result["calligraphy_font_used"]

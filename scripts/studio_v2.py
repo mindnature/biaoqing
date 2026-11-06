@@ -279,7 +279,7 @@ def repair(source: Path, corrections: Path, dest: Path, count: int = FRAME_COUNT
     return log
 
 
-def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int = 500000, heart: bool = False, min_output_frames: int = 4, selected_slugs: set[str] | None = None, build_dir: Path | None = None, caption_style: str = "auto", appearance: str = "auto"):
+def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int = 500000, heart: bool = False, min_output_frames: int = 4, selected_slugs: set[str] | None = None, build_dir: Path | None = None, caption_style: str = "auto", appearance: str = "auto", brush_font: str | None = None):
     from export_keyframes import make_frames, save_and_verify
     from wechat_export import export_one
 
@@ -324,7 +324,7 @@ def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int
         done_path = destination / "wechat" / f"{slug}.gif"
         export = export_one(raw_path, done_path, max_bytes,
                             text=action["caption"], font=font, heart=heart, min_frames=min_output_frames,
-                            caption_style=caption_style, appearance=appearance)
+                            caption_style=caption_style, appearance=appearance, brush_font=brush_font)
         output.append({"caption": action["caption"], "slug": slug, "gif": str(done_path),
                        "export": export, "quality": report["status"],
                        "visual_acceptance": "pending"})

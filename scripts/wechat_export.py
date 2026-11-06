@@ -55,13 +55,14 @@ def _heart(draw: ImageDraw.ImageDraw, center: tuple[int, int], radius: int):
 
 def render_frame(frame: Image.Image, canvas: int, text: str, font_path: str | None,
                  pink_caption: bool = True, heart: bool = False, *,
-                 design: CaptionDesign | None = None) -> Image.Image:
+                 design: CaptionDesign | None = None,
+                 brush_font: str | None = None) -> Image.Image:
     """Compose a stable caption; when called standalone, respect legacy pink flag."""
     if design is None:
         design = choose_caption_design([frame], style="cute" if pink_caption else "classic")
     out, anchor_y = layout_frame(frame, canvas, design, bool(text))
     if text:
-        draw_caption(out, text, font_path, design, anchor_y, heart=heart)
+        draw_caption(out, text, brush_font if design.name == "brush" and brush_font else font_path, design, anchor_y, heart=heart)
     return out
 
 
@@ -109,7 +110,8 @@ def verify(path: Path, max_bytes: int, expected_duration: int):
 
 def export_one(src: Path, dest: Path, max_bytes: int, text: str = "",
                font: str | None = None, heart: bool = False, min_frames: int = 4,
-               caption_style: str = "auto", appearance: str = "auto"):
+               caption_style: str = "auto", appearance: str = "auto",
+               brush_font: str | None = None):
     frames, durations = read_gif(src)
     if len(frames) < 2:
         raise ValueError(f"Source is static (one frame): {src}")
@@ -118,9 +120,11 @@ def export_one(src: Path, dest: Path, max_bytes: int, text: str = "",
     total = sum(durations)
     # Detect the style once per animation; never change colors/layout between frames.
     design = choose_caption_design(frames, style=caption_style, appearance=appearance)
+    if text and design.name == "brush" and not brush_font:
+        raise ValueError("Ink-brush typography selected: supply --brush-font with a licensed Chinese calligraphy font. Do not substitute a generic bold font.")
     attempts = 0
     for canvas in CANVASES:
-        resized = [render_frame(frame, canvas, text, font, heart=heart, design=design) for frame in frames]
+        resized = [render_frame(frame, canvas, text, font, heart=heart, design=design, brush_font=brush_font) for frame in frames]
         for stride in (1, 2, 3, 4):
             selected, times = choose_frames(resized, durations, stride)
             if len(selected) < min(min_frames, len(frames)):
@@ -139,6 +143,7 @@ def export_one(src: Path, dest: Path, max_bytes: int, text: str = "",
                                   "caption_placement": design.placement,
                                   "caption_style_reason": design.reason,
                                   "appearance_hint": appearance,
+                                  "calligraphy_font_used": bool(brush_font and design.name == "brush"),
                                   "attempts": attempts})
                     return stats
     raise ValueError(f"Unable to fit {src.name} under {max_bytes} bytes without unacceptable degradation; try a simpler action")
@@ -152,7 +157,8 @@ def main(argv=None):
     parser.add_argument("--captions", type=Path, help="JSON mapping input stems to captions")
     parser.add_argument("--font", help="Path to a licensed installed Chinese-capable font")
     parser.add_argument("--heart", action="store_true", help="Add a small heart next to caption")
-    parser.add_argument("--caption-style", choices=("auto", "classic", "cute", "heritage"),
+    parser.add_argument("--brush-font", help="Licensed Chinese calligraphy/brush font for auto paper-ink or --caption-style brush")
+    parser.add_argument("--caption-style", choices=("auto", "classic", "cute", "heritage", "brush"),
                         default="auto", help="Auto art direction by frame colors/coverage (default)")
     parser.add_argument("--appearance", choices=("auto", "photographic", "illustration", "pixel"),
                         default="auto", help="Optional appearance hint if automatic classification differs")
@@ -173,7 +179,8 @@ def main(argv=None):
         results = [export_one(src, args.output / src.name, args.max_bytes,
                               text=captions.get(src.stem, args.text), font=args.font,
                               heart=args.heart, min_frames=args.min_frames,
-                              caption_style=args.caption_style, appearance=args.appearance) for src in sources]
+                              caption_style=args.caption_style, appearance=args.appearance,
+                              brush_font=args.brush_font) for src in sources]
         if args.zip:
             args.zip.parent.mkdir(parents=True, exist_ok=True)
             with ZipFile(args.zip, "w", ZIP_DEFLATED) as archive:
@@ -184,7 +191,8 @@ def main(argv=None):
         results = [export_one(args.source, args.output, args.max_bytes,
                               text=captions.get(args.source.stem, args.text), font=args.font,
                               heart=args.heart, min_frames=args.min_frames,
-                              caption_style=args.caption_style, appearance=args.appearance)]
+                              caption_style=args.caption_style, appearance=args.appearance,
+                              brush_font=args.brush_font)]
     print(json.dumps(results, ensure_ascii=False, indent=2))
     return 0
 

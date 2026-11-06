@@ -4,6 +4,24 @@
 
 > 项目状态：**可运行的 Skill 与 Python 导出工具**，不是无需模型的「一张图自动变成完整动画」服务。复杂动作需要具备图像生成能力的智能体先制作连续关键帧；Python 脚本承担合成、压缩与验证。视觉效果需要人工审核。
 
+## V3.3｜真正好看的字体：东方水墨题字（新增）
+
+新增 **brush（书法）** 文字模式。你认可的「小玄游·开心！」案例采用浓墨笔触、自然飞白、左上留白题字，与宣纸水彩背景融为一体；这种视觉不应使用默认粗黑体或粉色底部贴纸字替代。
+
+V3.3 会对低饱和浅米色纸张画面尝试自动选择 \`brush\`，并把题字放到画面左上角，使用简洁墨色、无厚边、无底框；摄影猫咪仍使用暖白深棕高对比字，萌系仍保留粉色，非纸张国风保留米金风格。需要**真正具有毛笔书写字形的字体文件**，由使用者提供或在本机找到合法可用版本；不能拿通用黑体冒充书法。
+
+\`\`\`sh
+# 原图纸张水墨风格，自动匹配 brush 顶角书法排版
+python scripts/wechat_export.py raw.gif result.gif --text "开心！" \
+  --font "/path/to/CJK-font.ttf" --brush-font "/path/to/licensed-Chinese-brush-font.ttf"
+
+# 一整套 IP 继续每批4个，字幕风格一致
+python scripts/studio_v3.py build workspaces/xuanyou/production.json \
+  --font "/path/to/CJK-font.ttf" --brush-font "/path/to/licensed-Chinese-brush-font.ttf"
+\`\`\`
+
+没有合适的书法字体时程序会报告缺少 \`--brush-font\`，不会虚称已还原毛笔字形。示例图仅作为审美基准，不包含在仓库。完整规则见 [书法题字规范](references/typography-v33.md)。
+
 ## V3.2｜字幕按角色画风自动选择（当前默认）
 
 现在不再所有角色统一使用粉红字白描边。新增 **经典高对比 / 萌系粉色 / 国风暖色** 三套排版样式，并按画面透明度、亮暗、暖冷和饱和度自动挑选；字号、描边厚度和文字与角色的距离也会调整。**同一套 IP 只选择一次**，保存到 \`build/caption-style.json\`，后续每批复用以保持系列一致。
