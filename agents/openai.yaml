@@ -1,4 +1,4 @@
 interface:
-  display_name: "思然 GIF Studio V3.1"
-  short_description: "默认16个表情，每个16帧逐帧表演，每批4个"
-  default_prompt: "使用 $siran-gif-studio V3.1，根据我上传的原创角色图制作一套微信动态表情包。没有另外指定时默认16个表情，每个16张真实不同的动作帧，每批4个顺序制作。先检查人物表演动作、角色一致性及字幕，再导出。严禁仅用静态图摇摆冒充真正逐帧动画。"
+  display_name: "思然 GIF Studio V3.2"
+  short_description: "逐帧角色表演 + 按角色画风自动匹配高级字幕"
+  default_prompt: "使用 $siran-gif-studio 的 V3.2，根据原创IP角色图制作默认16个独立GIF，每个16张真实动作帧、每批4张；字幕必须分析角色画风后自动选择经典高对比/萌系粉色/国风暖色，并保持整套统一，使用粗体、厚描边和无底板的自然排版。先检查首批视觉效果，再继续制作。"

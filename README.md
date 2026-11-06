@@ -4,6 +4,34 @@
 
 > 项目状态：**可运行的 Skill 与 Python 导出工具**，不是无需模型的「一张图自动变成完整动画」服务。复杂动作需要具备图像生成能力的智能体先制作连续关键帧；Python 脚本承担合成、压缩与验证。视觉效果需要人工审核。
 
+## V3.2｜字幕按角色画风自动选择（当前默认）
+
+现在不再所有角色统一使用粉红字白描边。新增 **经典高对比 / 萌系粉色 / 国风暖色** 三套排版样式，并按画面透明度、亮暗、暖冷和饱和度自动挑选；字号、描边厚度和文字与角色的距离也会调整。**同一套 IP 只选择一次**，保存到 \`build/caption-style.json\`，后续每批复用以保持系列一致。
+
+| 可选风格 | 字体与描边 | 典型对象 |
+| --- | --- | --- |
+| \`auto\`（默认） | 自动综合颜色/背景判断 | 默认推荐 |
+| \`classic\` | 暖白粗字＋深棕厚边＋柔和阴影 | 实拍猫咪、有背景的摄影角色 |
+| \`cute\` | 粉红粗字＋白描边＋深莓色外框 | 明亮、软萌、彩色 Q 版 |
+| \`heritage\` | 米金粗字＋深墨棕厚边 | 国风、暖调和深色服装角色 |
+
+单张 GIF 示例：
+
+\`\`\`sh
+python scripts/wechat_export.py raw.gif finished.gif --text "好的" --font "/path/to/authorized-bold-CJK.ttf"
+# 风格自动选择；觉得不合适时可通过 --caption-style classic|cute|heritage 手动指定
+\`\`\`
+
+整套分批 GIF 示例：
+
+\`\`\`sh
+python scripts/studio_v3.py build workspaces/yiran/production.json --font "/path/to/authorized-bold-CJK.ttf"
+# 手动覆盖示例（仅在新项目开始的第一批之前使用）
+python scripts/studio_v3.py build workspaces/yiran/production.json --font "/path/to/authorized-bold-CJK.ttf" --caption-style heritage
+\`\`\`
+
+字体仍需要由使用者在本机提供具备中文字符且有合法使用权的粗体字体，项目不分发字体文件。**自动选择是颜色与透明度的启发式判断，不是美术大模型**；首批生成后仍应实际观看字幕是否协调，必要时整体重做样式。详见 [V3.2 字幕设计规范](references/caption-v32.md)。
+
 ## V3.1｜默认 16 张微信表情包，每张 16 帧，分 4 批制作
 
 **不用再指定每套多少张。** 上传你有权使用的原创 IP 角色参考图，说「做一套表情包」，现在默认自动创建 **16 个独立 GIF × 每个 GIF 16 张真正不同的角色动作帧 = 256 张动作帧**；按 **每批 4 个 GIF** 分批生成与审核，每批需 64 张动作帧。**动作帧必须由具备绘图/图像生成能力的智能体或创作者实际制作，Python 工具不能凭空画出动作。**

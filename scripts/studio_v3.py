@@ -13,6 +13,7 @@ import sys
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PIL import Image, ImageChops, ImageStat
+from caption_design import choose_caption_design
 
 from studio_v2 import ACTION_LIBRARY, FRAME_COUNT, _project, _save_json, analyze, build as v2_build, plan as v2_plan, read_frames
 from sticker_pack_v31 import ACTION_PRESETS, DEFAULT_BATCH_SIZE, choose_captions, group_actions, write_batch_guides
@@ -226,8 +227,43 @@ def assemble_v31(production: Path, *, max_bytes: int = 500000):
             'batches': len(project['batches']), 'user_acceptance': 'pending'}
 
 
+def _locked_caption_style(project: dict, root: Path, actions: list[dict],
+                          choice: str = "auto", appearance: str = "auto") -> str:
+    """Choose once for the character, persist for all future four-sticker batches."""
+    if project.get("version") != "3.1":
+        return choice
+    config_path = root / "build" / "caption-style.json"
+    if config_path.is_file():
+        saved = json.loads(config_path.read_text(encoding="utf-8"))
+        locked = saved["style"]
+        if choice not in ("auto", locked):
+            raise ValueError(f"Caption style is locked to {locked}; rebuild the pack in a new workspace to change it")
+        return locked
+    reference = Path(project["character"].get("reference", ""))
+    if not reference.is_file():
+        reference = root / reference
+    if reference.is_file():
+        with Image.open(reference) as im:
+            frames = [im.convert("RGBA").copy()]
+        evidence = "character reference"
+    else:
+        # Workspaces sometimes reference a private image managed by the agent,
+        # not stored at that path; use the first built action as the fallback.
+        frames = read_frames(root / actions[0]["frames_dir"], FRAME_COUNT)
+        evidence = "first action poses (reference file unavailable)"
+    design = choose_caption_design(frames, style=choice, appearance=appearance)
+    _save_json(config_path, {
+        "version": "3.2", "style": design.name, "placement": design.placement,
+        "reason": design.reason, "evidence": evidence, "appearance": appearance,
+        "user_override": choice != "auto",
+        "note": "Heuristic decision; review first batch typography visually before extending pack."
+    })
+    return design.name
+
+
 def build_v3(production: Path, font: str, *, max_bytes=500000, heart=False,
-             batch: int | None = None):
+             batch: int | None = None, caption_style: str = "auto",
+             appearance: str = "auto"):
     project = _project(production)
     if project.get('motion_mode') != 'full_character_performance' or project.get('version') not in ('3.0', '3.1'):
         raise ValueError('Requires a full_character_performance production.json')
@@ -265,9 +301,11 @@ def build_v3(production: Path, font: str, *, max_bytes=500000, heart=False,
     if failures:
         raise ValueError('V3 full-performance gate blocked: ' + ', '.join(failures) +
                          '; inspect v3-quality; no fallback to light-motion')
+    chosen_style = _locked_caption_style(project, root, actions, caption_style, appearance)
     result = v2_build(production, font, max_bytes=max_bytes, heart=heart,
                       min_output_frames=MIN_OUTPUT_FRAMES, selected_slugs=selected,
-                      build_dir=destination)
+                      build_dir=destination, caption_style=chosen_style,
+                      appearance=appearance)
     from wechat_export import read_gif
     for item in result['actions']:
         final_frames, _ = read_gif(Path(item['gif']))
@@ -284,6 +322,7 @@ def build_v3(production: Path, font: str, *, max_bytes=500000, heart=False,
                              f"changes={report['max_normalized_change']}, "
                              f"head={report['head_region_change']}, torso={report['torso_region_change']}")
     result['v3_full_performance'] = True
+    result['caption_style'] = chosen_style
     result['version'] = project['version']
     result['batch'] = index
     result['visual_acceptance'] = 'pending'
@@ -317,6 +356,8 @@ def main(argv=None):
     group.add_argument('--batch', type=int)
     group.add_argument('--all', action='store_true')
     q.add_argument('--heart', action='store_true')
+    q.add_argument('--caption-style', choices=['auto', 'classic', 'cute', 'heritage'], default='auto')
+    q.add_argument('--appearance', choices=['auto', 'photographic', 'illustration', 'pixel'], default='auto')
     q.add_argument('--max-bytes', type=int, default=500000)
     q = sub.add_parser('status', help='Show built/pending groups')
     q.add_argument('production', type=Path)
@@ -349,12 +390,14 @@ def main(argv=None):
             raise ValueError('--all requires a V3.1 project')
         completed = []
         while pack_progress(a.production)['next_batch'] is not None:
-            result = build_v3(a.production, a.font, max_bytes=a.max_bytes, heart=a.heart)
+            result = build_v3(a.production, a.font, max_bytes=a.max_bytes, heart=a.heart,
+                              caption_style=a.caption_style, appearance=a.appearance)
             completed.append(result['batch'])
         summary = {'version':'3.1', 'completed_batches':completed,
                    'complete_pack':assemble_v31(a.production, max_bytes=a.max_bytes)}
     else:
-        res = build_v3(a.production, a.font, max_bytes=a.max_bytes, heart=a.heart, batch=a.batch)
+        res = build_v3(a.production, a.font, max_bytes=a.max_bytes, heart=a.heart,
+                       batch=a.batch, caption_style=a.caption_style, appearance=a.appearance)
         summary = {'version':res['version'], 'batch':res['batch'],
                    'produced':len(res['actions']), 'zip':res['zip'],
                    'complete_pack':res.get('complete_pack'),
