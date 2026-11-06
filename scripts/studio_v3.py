@@ -144,7 +144,12 @@ def build_v3(production: Path, font: str, *, max_bytes=500000, heart=False):
         report = acting_report(final_frames)
         _save_json(root / 'build' / 'v3-quality' / f"{item['slug']}-export.json", report)
         if report['status'] == 'blocked':
-            raise ValueError(f"Compressed GIF {item['slug']} no longer passes full-performance check")
+            Path(result['zip']).unlink(missing_ok=True)
+            codes = [issue['code'] for issue in report['issues'] if issue['severity'] == 'block']
+            raise ValueError(f"Compressed GIF {item['slug']} no longer passes full-performance check: {codes}; "
+                             f"poses={report['distinct_normalized_poses']}; "
+                             f"changes={report['max_normalized_change']}, "
+                             f"head={report['head_region_change']}, torso={report['torso_region_change']}")
     result['v3_full_performance'] = True
     result['visual_acceptance'] = 'pending'
     _save_json(root / 'build' / 'v3-summary.json', result)
