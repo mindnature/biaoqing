@@ -1,6 +1,6 @@
 # 思然 GIF Studio · 原创 IP 动态表情包工作室
 
-让 Codex / 支持自定义 Skill 的智能体根据**你有权使用的角色参考图**规划表情，制作轻动态或完整逐帧表演，审核后输出可独立发送的透明 GIF。此仓库基于 [WoYun520/pixel-gif-sticker-pack](https://github.com/WoYun520/pixel-gif-sticker-pack) 的 MIT 开源代码升级；本仓库不重新分发原项目的大量示例 GIF 和可能涉及第三方 IP 的素材。
+思然 GIF Studio 是面向原创 IP 的动态表情包制作工具，支持在 Codex 等智能体中规划角色动作、逐帧合成、艺术字体排版、质量检查和微信 GIF 批量导出。仓库不附带第三方角色图片或字体素材。
 
 > 项目状态：**可运行的 Skill 与 Python 导出工具**，不是无需模型的「一张图自动变成完整动画」服务。复杂动作需要具备图像生成能力的智能体先制作连续关键帧；Python 脚本承担合成、压缩与验证。视觉效果需要人工审核。
 
@@ -138,7 +138,7 @@ python scripts/studio_v2.py build workspaces/yiran/production.json --font "/path
 1. 在 Codex 发送：`请从 https://github.com/mindnature/biaoqing 安装并使用这个 Skill。`
 2. 上传自己的角色图，并说明要做的动作（建议先试「收到」「哈哈」「委屈」「哼」）。角色必须保持固定头身比、发型/配饰、色彩及表情特征。
 3. 首先生成 **3–4 张动作关键姿势** 检查角色一致性，再制作约 12–16 张连续姿势的透明图集，保留无文字画面。
-4. 根据 `SKILL.md` 选择原项目提供的 **完整动作** 合成器或轻动态合成器，逐帧检查并修复问题。
+4. 根据 `SKILL.md` 使用 **完整逐帧表演** 工作流，逐帧检查并修复问题；只有明确指定时才采用轻动态。
 5. 用本仓库新增的 `scripts/wechat_export.py` 统一叠字、压缩并验证每张 GIF。实际尺寸/体积请以当前微信表情开放平台要求为准。
 
 ## 本仓库的关键升级
@@ -146,10 +146,10 @@ python scripts/studio_v2.py build workspaces/yiran/production.json --font "/path
 | 功能 | 对应文件 |
 | --- | --- |
 | Codex Skill 使用规范、角色动作与视觉验收 | `SKILL.md` |
-| 原项目高清关键帧 GIF 合成 | `scripts/export_keyframes.py` |
-| 原项目像素全身动作合成 | `scripts/export_pixel_actions.py` |
-| 原项目轻动态合成 | `scripts/export_pack.py` |
-| 原项目逐帧检查、循环接缝审核 | `scripts/review_gif.py` |
+| 高清关键帧 GIF 合成 | `scripts/export_keyframes.py` |
+| 像素全身动作合成 | `scripts/export_pixel_actions.py` |
+| 轻动态合成（可选） | `scripts/export_pack.py` |
+| 逐帧检查、循环接缝审核 | `scripts/review_gif.py` |
 | **新增：微信小体积透明 GIF、固定中文字幕、批量 ZIP、输出验证** | `scripts/wechat_export.py` |
 | **新增：微信规范、角色锁定、使用清单** | `references/wechat.md`、`references/character-consistency.md` |
 | **新增：自动测试** | `tests/`、`.github/workflows/ci.yml` |
@@ -182,7 +182,7 @@ python scripts/wechat_export.py build/gifs build/wechat --captions captions.json
 
 **要让微信字幕只叠加一次：**高清关键帧动作清单必须保留非空 `text`（用于命名），同时在 entry 中设置 `"render_caption": false`；这样上游只合成无字幕的角色动作。然后用 `wechat_export.py --text 收到 --font ...` 添加唯一的固定字幕。可参考 `examples/action-manifest.example.json`（须自行提供 4×4 透明关键帧图集 `poses.png`）。
 
-原项目各合成器的指令示例：
+各合成器的指令示例：
 
 ```sh
 python scripts/export_pack.py manifest.json build/light --font "/path/to/ChineseFont.ttf"
@@ -203,4 +203,4 @@ python -m pytest -q
 
 ## 版权与许可
 
-本项目基于原作者 WoYun520 以 **MIT License** 发布的代码与文档进行二次开发，并保留原版版权声明，详见 `LICENSE`、`NOTICE.md`。新增代码同样以 MIT 发布。角色肖像、示例图片、商标、字体等第三方权利需分别获得授权；不能因为工具开源就假定角色素材可自由商用。
+本项目采用 **MIT License** 发布。所包含的第三方开源代码和文档仍遵循其原有许可要求，依法需要保留的版权及许可声明见 `LICENSE`、`NOTICE.md`。角色形象、图片、商标和字体等素材的使用权需单独确认，开源许可不自动涵盖第三方素材。
