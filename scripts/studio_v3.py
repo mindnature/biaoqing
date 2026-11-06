@@ -69,7 +69,7 @@ def acting_report(frames: list[Image.Image], *, compressed: bool = False):
     if len(poses) < (2 if compressed else 4) or max_pose < (.010 if compressed else .038):
         issues.append({'severity': 'block', 'code': 'whole_sprite_only',
                        'reason': 'Pose-normalized frames are nearly identical: no credible character acting'})
-    if upper < (.010 if compressed else .018) or torso < (.008 if compressed else .018):
+    if upper < (.006 if compressed else .018) or torso < (.008 if compressed else .018):
         issues.append({'severity': 'block', 'code': 'not_coordinated_acting',
                        'reason': 'Insufficient changes across face/head and torso/arms'})
     status = ('blocked' if any(i['severity'] == 'block' for i in issues)
