@@ -48,12 +48,13 @@ def difference(a: Image.Image, b: Image.Image, region: tuple[float, float] = (0,
 
 def acting_report(frames: list[Image.Image], *, compressed: bool = False):
     """Reject fake actions produced by only translating/scaling one sprite."""
-    # Exporter reserves the bottom quarter for a fixed caption. Exclude that
-    # region from both the pose-normalized acting signal and silhouette checks,
-    # otherwise caption glyphs can wrongly dominate motion scores.
-    motion_frames = ([im.crop((0, 0, im.width, max(2, round(im.height * 0.77))))
+    # Check real canvas edges on the COMPLETE final frame. Cropping a frame
+    # through the integrated caption creates an artificial "clipped" boundary.
+    base = analyze(frames)
+    # For motion characterization exclude the fixed caption region. The
+    # new integrated typography starts higher than the V3.1 bottom label.
+    motion_frames = ([im.crop((0, 0, im.width, max(2, round(im.height * 0.66))))
                       for im in frames] if compressed else frames)
-    base = analyze(motion_frames)
     normalized = [normalize_pose(x) for x in motion_frames]
     poses = [0]
     pose_threshold = .010 if compressed else .016
