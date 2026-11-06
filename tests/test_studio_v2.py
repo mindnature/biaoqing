@@ -26,15 +26,15 @@ def save_poses(folder: Path, count=16):
 
 def test_production_plan_has_separate_storyboards(tmp_path):
     root = tmp_path / "work"
-    result = plan("一然", "my-private-character.png", ["哈哈", "委屈", "收到", "哼"], root, "illustration")
+    result = plan("示例角色", "my-private-character.png", ["哈哈", "委屈", "收到", "哼"], root, "illustration")
     assert [a["slug"] for a in result["actions"]] == ["laugh", "hurt", "received", "hmph"]
     assert all(len(a["keyframes"]) == 16 for a in result["actions"])
     assert all((root / "prompts" / f"{a['slug']}.txt").exists() for a in result["actions"])
     assert (root / "production.json").is_file()
     with pytest.raises(FileExistsError):
-        plan("一然", "image.png", ["收到"], root, "illustration")
+        plan("示例角色", "image.png", ["收到"], root, "illustration")
     with pytest.raises(ValueError):
-        plan("一然", "image.png", ["收到", "收到"], tmp_path / "other", "illustration")
+        plan("示例角色", "image.png", ["收到", "收到"], tmp_path / "other", "illustration")
 
 
 def test_inspection_flags_blank_or_clipped_frames():

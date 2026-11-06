@@ -1,1 +1,7 @@
-Sample PNG/GIF assets from the original project are intentionally not redistributed. The original MIT-licensed exporters are included. For upstream demonstrations visit https://github.com/WoYun520/pixel-gif-sticker-pack/tree/main/examples . Use your own or authorized reference pictures. The template here is for reference and cannot produce animation until you supply an atlas.
+# 通用表情包示例
+
+本目录提供可运行的 JSON 结构样例，而不是某位使用者的个人角色素材。请用自己创作或已获授权的角色参考图与透明关键帧替换示例路径。该 Skill 不附带第三方 GIF、图片、商标或字体文件。
+
+主要使用入口：`scripts/studio_v3.py`，默认16个独立表情，每个规划16个动作帧，4个一批。具体流程见根目录 `README.md` 与 `SKILL.md`。
+
+仓库中的开源来源及许可义务见 `LICENSE` 与 `NOTICE.md`。

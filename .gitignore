@@ -9,3 +9,9 @@ dist/
 
 # Private reference portraits and generated animated project content
 workspaces/
+
+# Local user images and generated outputs: do not accidentally commit private material
+assets/
+uploads/
+outputs/
+previews/

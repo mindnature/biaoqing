@@ -59,7 +59,7 @@ def test_insufficient_frame_count_is_rejected():
 
 
 def test_plan_marks_full_acting_and_sample_timing(tmp_path):
-    p = plan_v3('一然', 'user-reference.png', ['哼','收到'], tmp_path/'project')
+    p = plan_v3('示例角色', 'user-reference.png', ['哼','收到'], tmp_path/'project')
     assert p['motion_mode'] == 'full_character_performance'
     assert p['version'] == '3.1'
     assert p['actions'][0]['keyframes'][0]['duration_ms'] == 140
@@ -81,7 +81,7 @@ def test_import_atlas_splits_16_independent_poses(tmp_path):
 
 def test_build_rejects_fake_bounce_before_generating_zip(tmp_path):
     root = tmp_path/'project'
-    p = plan_v3('一然', 'user-reference.png', ['哼'], root)
+    p = plan_v3('示例角色', 'user-reference.png', ['哼'], root)
     folder = root / p['actions'][0]['frames_dir']
     for i, f in enumerate(fake_bounce()):
         f.save(folder / f'{i:03d}.png')

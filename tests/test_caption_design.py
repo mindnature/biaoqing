@@ -141,7 +141,7 @@ def test_ink_title_at_top_left_without_heavy_sticker_outline():
     assert out.size == (240, 240)
 
 
-def test_auto_brush_requires_genuine_local_brush_font(tmp_path):
+def test_auto_brush_falls_back_when_brush_font_is_unavailable(tmp_path):
     src = tmp_path / "paper.gif"
     frames = [paper_watercolor() for _ in range(5)]
     for i, im in enumerate(frames):
@@ -149,12 +149,30 @@ def test_auto_brush_requires_genuine_local_brush_font(tmp_path):
                                 fill="#554134", width=5)
     frames[0].save(src, save_all=True, append_images=frames[1:],
                    duration=140, loop=0, disposal=2)
+    # A general user should not be blocked by the absence of an optional brush font.
+    fallback = export_one(src, tmp_path / "fallback.gif", 500000,
+                          text="OK", font="DejaVuSans.ttf")
+    assert fallback["caption_style"] == "heritage"
+    assert "unavailable" in fallback["caption_style_reason"]
+    # Explicit calligraphy must never be falsely rendered with a generic font.
     with pytest.raises(ValueError, match="brush-font"):
-        export_one(src, tmp_path / "out.gif", 500000,
-                   text="OK", font="DejaVuSans.ttf")
+        export_one(src, tmp_path / "bad.gif", 500000,
+                   text="OK", font="DejaVuSans.ttf", caption_style="brush")
     result = export_one(src, tmp_path / "out.gif", 500000,
                         text="OK", font="DejaVuSans.ttf",
                         brush_font="DejaVuSans.ttf")
     assert result["caption_style"] == "brush"
     assert result["caption_placement"] == "upper_left"
     assert result["calligraphy_font_used"]
+
+
+def test_pack_auto_style_fallback_without_brush_font(tmp_path):
+    path = tmp_path / "paper.png"
+    paper_watercolor().save(path)
+    root = tmp_path / "pack"
+    project = {"version": "3.1", "character": {"reference": str(path)}}
+    chosen = _locked_caption_style(project, root, [], "auto", "illustration")
+    assert chosen == "heritage"
+    saved = json.loads((root / "build" / "caption-style.json").read_text(encoding="utf8"))
+    assert "No licensed brush font" in saved["reason"]
+    assert _locked_caption_style(project, root, [], "auto", "illustration") == chosen

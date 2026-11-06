@@ -120,8 +120,13 @@ def export_one(src: Path, dest: Path, max_bytes: int, text: str = "",
     total = sum(durations)
     # Detect the style once per animation; never change colors/layout between frames.
     design = choose_caption_design(frames, style=caption_style, appearance=appearance)
+    fallback_note = None
     if text and design.name == "brush" and not brush_font:
-        raise ValueError("Ink-brush typography selected: supply --brush-font with a licensed Chinese calligraphy font. Do not substitute a generic bold font.")
+        if caption_style == "auto":
+            fallback_note = "Brush font unavailable; used readable heritage caption instead."
+            design = choose_caption_design(frames, style="heritage", appearance=appearance)
+        else:
+            raise ValueError("Ink-brush typography requires --brush-font with a licensed Chinese calligraphy font.")
     attempts = 0
     for canvas in CANVASES:
         resized = [render_frame(frame, canvas, text, font, heart=heart, design=design, brush_font=brush_font) for frame in frames]
@@ -141,7 +146,7 @@ def export_one(src: Path, dest: Path, max_bytes: int, text: str = "",
                                   "original_frames": len(frames), "text": text,
                                   "caption_style": design.name,
                                   "caption_placement": design.placement,
-                                  "caption_style_reason": design.reason,
+                                  "caption_style_reason": fallback_note or design.reason,
                                   "appearance_hint": appearance,
                                   "calligraphy_font_used": bool(brush_font and design.name == "brush"),
                                   "attempts": attempts})

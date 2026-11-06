@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Siran GIF Studio V2: plan, inspect, repair and build real keyframe GIFs.
+"""GIF Sticker Studio V2: plan, inspect, repair and build real keyframe GIFs.
 
 No generative model is bundled: frames must be created by an authorized image
 model, artist or animation tool. Only reproducible image operations run here.
@@ -52,8 +52,13 @@ def _save_json(path: Path, value):
 
 def _project(path: Path):
     data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema") != "siran-gif-v2" or not isinstance(data.get("actions"), list):
-        raise ValueError("Not a Siran GIF Studio V2 production.json")
+    # New plans use the neutral schema; accept historic *-gif-v2 plans for
+    # backwards compatibility without encoding any former project branding.
+    schema = data.get("schema")
+    valid_schema = (schema == "gif-sticker-v2" or
+                    isinstance(schema, str) and bool(re.fullmatch(r"[a-z][a-z0-9-]*-gif-v2", schema)))
+    if not valid_schema or not isinstance(data.get("actions"), list):
+        raise ValueError("Not a GIF Sticker Studio V2 production.json")
     if not data["actions"]:
         raise ValueError("Production plan has no actions")
     seen = set()
@@ -101,7 +106,7 @@ def plan(character: str, reference: str, captions: list[str], output: Path, appe
         prompt += "\n".join(f"{k['index']:02d}. {k['direction']}" for k in keyframes)
         prompt += "\n先审核第0、5、8、15帧的身份一致性，再生成中间帧。合成最终16张独立透明PNG，命名000.png—015.png。\n"
         (task_dir / f"{slug}.txt").write_text(prompt, encoding="utf-8")
-    production = {"schema": "siran-gif-v2", "character": {"name": character.strip(),
+    production = {"schema": "gif-sticker-v2", "character": {"name": character.strip(),
                   "reference": reference, "appearance": appearance,
                   "identity_anchors": ["轮廓/头身比", "眼睛间距和脸型", "配色与材质", "标志性配饰"]},
                   "frame_size": [512, 512], "actions": actions,

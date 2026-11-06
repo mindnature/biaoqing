@@ -229,7 +229,8 @@ def assemble_v31(production: Path, *, max_bytes: int = 500000):
 
 
 def _locked_caption_style(project: dict, root: Path, actions: list[dict],
-                          choice: str = "auto", appearance: str = "auto") -> str:
+                          choice: str = "auto", appearance: str = "auto",
+                          brush_font: str | None = None) -> str:
     """Choose once for the character, persist for all future four-sticker batches."""
     if project.get("version") != "3.1":
         return choice
@@ -254,9 +255,13 @@ def _locked_caption_style(project: dict, root: Path, actions: list[dict],
         evidence = "first action poses (reference file unavailable)"
     effective_appearance = project["character"].get("appearance", "auto") if appearance == "auto" else appearance
     design = choose_caption_design(frames, style=choice, appearance=effective_appearance)
+    fallback_note = None
+    if design.name == "brush" and not brush_font and choice == "auto":
+        design = choose_caption_design(frames, style="heritage", appearance=effective_appearance)
+        fallback_note = "No licensed brush font available; selected a readable non-calligraphic style."
     _save_json(config_path, {
         "version": "3.3", "style": design.name, "placement": design.placement,
-        "reason": design.reason, "evidence": evidence, "appearance": appearance,
+        "reason": fallback_note or design.reason, "evidence": evidence, "appearance": appearance,
         "user_override": choice != "auto",
         "note": "Heuristic decision; review first batch typography visually before extending pack."
     })
@@ -303,7 +308,7 @@ def build_v3(production: Path, font: str, *, max_bytes=500000, heart=False,
     if failures:
         raise ValueError('V3 full-performance gate blocked: ' + ', '.join(failures) +
                          '; inspect v3-quality; no fallback to light-motion')
-    chosen_style = _locked_caption_style(project, root, actions, caption_style, appearance)
+    chosen_style = _locked_caption_style(project, root, actions, caption_style, appearance, brush_font)
     if chosen_style == "brush" and not brush_font:
         raise ValueError("Ink-brush style requires --brush-font with a licensed Chinese calligraphy font. Do not replace it with generic bold typography.")
     result = v2_build(production, font, max_bytes=max_bytes, heart=heart,

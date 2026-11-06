@@ -1,9 +1,9 @@
 {
   "_note": "Example for export_keyframes.py; provide an actual transparent 4x4 atlas named poses.png first. Do not render this JSON alone.",
-  "title": "一然：收到",
+  "title": "示例角色：收到",
   "entries": [
     {
-      "name": "yiran-received",
+      "name": "demo-received",
       "text": "",
       "atlas": "poses.png",
       "grid": [4, 4],

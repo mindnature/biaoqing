@@ -6,5 +6,5 @@ MIT License, Copyright (c) 2026 WoYun520.
 See LICENSE for complete terms. Original third-party artwork, GIF examples and
 referenced character likenesses are not incorporated into this repository.
 
-New Siran GIF Studio additions are also distributed under the MIT License.
-Original user-created character assets and third-party font files are not included.
+New GIF Sticker Studio additions are also distributed under the MIT License.
+User-provided character assets and third-party font files are not included.
