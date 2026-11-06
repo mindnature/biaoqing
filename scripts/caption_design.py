@@ -58,7 +58,14 @@ def _sample(frames: list[Image.Image]):
                 dark += 1
             if r > b * 1.12 and r > g * 1.04:
                 warm += 1
+    corner_image = frames[indices[0]].convert("RGBA").resize((72, 72), Image.Resampling.BILINEAR)
+    corner_pixels = [corner_image.getpixel((x, y))
+                     for x in list(range(0, 14)) + list(range(58, 72))
+                     for y in list(range(0, 14)) + list(range(58, 72))]
+    pale_corners = sum(1 for r, g, b, a in corner_pixels
+                       if a >= 128 and r > 235 and g > 224 and b > 207)
     return {
+        "pale_corner_fraction": pale_corners / max(1, len(corner_pixels)),
         "opaque_coverage": opaque / max(1, total),
         "saturation": saturated / max(1, visible),
         "dark_fraction": dark / max(1, visible),
@@ -91,6 +98,7 @@ def choose_caption_design(frames: list[Image.Image], *, style: str = "auto",
         chosen, reason = style, "manual override"
     elif (appearance != "photographic" and metrics["opaque_coverage"] > .92
           and metrics["pale_paper_fraction"] > .41 and metrics["paper_fraction"] > .54
+          and metrics["pale_corner_fraction"] > .35
           and metrics["saturation"] < .22):
         chosen, reason = "brush", "warm light paper-like illustration, suitable for calligraphic typography"
     elif appearance == "photographic" or (appearance == "auto" and metrics["opaque_coverage"] >= .93):
