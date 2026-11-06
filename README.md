@@ -2,7 +2,50 @@
 
 基于**用户自己的或获得授权的参考素材**，协助制作适用于即时通讯的 GIF 动态表情包。支持人物、宠物、卡通、像素、插画、照片、潮玩和其他原创角色，不预设姓名、身份、性别、地域或美术风格。适用于 Codex 及能运行 Python、使用图像工具的智能体。
 
-> **能力边界**：本仓库提供制作规范、动作分镜、关键帧检测、合成、字幕设计、压缩和打包程序，不内置图像生成模型。真正的角色表演需要执行环境生成或提供连续的姿势帧；单张静态图摇摆或缩放不等于逐帧动画。
+> **能力边界**：本仓库支持动作分镜、视频/GIF/PNG 动作素材导入、抽帧、轻量抠像、逐帧审核、字幕、压缩和打包，不内置图像或视频生成模型；真实角色表演需要用户的现成动画素材或外部生成工具；单张静态图摇摆或缩放不等于逐帧动画。
+
+## V4.0｜真正的动画素材接入：图像 / 视频 / 已有素材三条路线
+
+从 V4.0 起，**不必先手工准备好全部 16 张 PNG**。用户有权使用的动画视频（MP4/MOV/WebM）或现有动态 GIF、连续 PNG 可以直接导入：视频抽帧（需要 FFmpeg）→ 检测绿幕/紫幕或已有透明通道 → 色键透明化 → 统一坐标与方形画布 → 16 张真实姿势 → 动作 QA → 本地逐帧可视化预览 → 继续使用现有字幕、500KB GIF 导出与 4 张/批 ZIP。
+
+### 最简单的两条使用方法
+
+**方式一：通过 Codex 等智能体生成动画视频，再导入**
+
+\`\`\`sh
+# 创建默认一套16个表情，4张一批；同时为每个表情写好图生视频提示词
+python scripts/studio_v4.py plan \
+  --character "示例角色" --reference "assets/character.png" \
+  --output workspaces/sample
+
+# 找到 generation/okay-video.txt，用已连接且获授权的视频工具生成对应动作 MP4；
+# 本仓库不会自动调用外部模型或消耗 API 额度。
+# 建议生成固定镜头、真实肢体动作、纯绿幕/紫幕背景的视频。
+python scripts/studio_v4.py import \
+  workspaces/sample/production.json okay /path/to/action.mp4 \
+  --background auto --mode cycle
+
+# 浏览器打开生成的离线 HTML，对16帧的脸、手、衣服及循环逐格审核
+python scripts/studio_v4.py review workspaces/sample/production.json okay
+
+# 第一批4个真实动作均导入并通过质量检查后，使用已有生产管线导出
+python scripts/studio_v4.py build workspaces/sample/production.json \
+  --font "/path/to/licensed-CJK-font.ttf"
+\`\`\`
+
+**方式二：不用视频模型，直接导入现有 GIF 或 PNG 帧**
+
+\`\`\`sh
+python scripts/studio_v4.py import workspaces/sample/production.json \
+  okay /path/to/animated.gif
+# 或 source 换成包含连续 PNG/JPG/WebP 的目录
+\`\`\`
+
+**方式三：图像生成关键姿势**。打开 \`prompts/<action>.txt\`，由具备图像生成能力的智能体按固定角色参考图创作真实连续的 16 张动作 PNG（也可先生成动作图集并拆分）；然后走同样的 review/build。与视频路线相比，这条路线可能更易维持画面细节，但人物动作的连续性需要重点检查。
+
+**具体边界**：工具不内置 GPT/Grok 或任何图生视频模型，也不自动代替用户登录、付费或授权服务。直接读取 MP4 需要安装 FFmpeg；透明背景只支持真实 alpha 或色键绿幕/紫幕的确定性处理，复杂实拍背景仍需外部抠像工具。自动循环选择和质量报告是启发式筛查，**不能保证人物真实、动作自然或所有平台审核通过**。
+
+详细步骤、失败处理和生成服务责任边界见 [V4.0 生产指南](references/v4.md)。
 
 ## 默认规则与可配置项
 
@@ -23,7 +66,7 @@
 
 打开 Codex 或兼容 Agent Skill 的智能体，提供本仓库地址：`https://github.com/mindnature/biaoqing`。安装后按照 `SKILL.md` 执行。
 
-本地使用：Python 3.10+，执行 `python -m pip install -r requirements.txt`。生成 MP4 预览可能需要 FFmpeg。字体由使用者提供有合法使用权的本地 CJK 字体，本项目不分发字体。
+本地使用：Python 3.10+，执行 `python -m pip install -r requirements.txt`。导入 MP4/MOV/WebM 视频必须安装 FFmpeg；GIF 和 PNG 目录导入不需要。字体由使用者提供有合法使用权的本地 CJK 字体，本项目不分发字体。
 
 ## 从参考图到动态 GIF
 

@@ -15,3 +15,6 @@ assets/
 uploads/
 outputs/
 previews/
+
+# Per-user offline frame review outputs (embedded user images)
+review/

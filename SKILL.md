@@ -1,6 +1,6 @@
 ---
 name: gif-sticker-studio
-description: 通用动态GIF表情包制作Skill。默认方形、单张不超过500000字节、16个GIF/套、每个规划16帧、每批4个。支持人物宠物卡通照片等素材、真实逐帧动作、智能适配字幕及自定义样式，不依赖特定IP或个人偏好。
+description: V4通用GIF表情包制作：支持通过外部生成模型的图像关键帧、视频抽帧与现有PNG/GIF素材三种路线生成真实角色动作；提供透明处理、逐帧本地预览、字幕适配和微信方形GIF≤500000字节导出。默认16张每套，每个16帧，每批4张。
 ---
 
 # GIF Sticker Studio｜通用动态表情包 Skill
@@ -12,6 +12,32 @@ description: 通用动态GIF表情包制作Skill。默认方形、单张不超�
 - 表情文案、角色画风、字体色彩、动作类型由用户需求与具体素材决定。默认不绑定毛笔字、粉红字、东方题材、特定宠物或个人品牌。
 - **只把用户明确指定的目标规格当硬性约束**；如果用户没说，则采用下面的项目默认值，并在目标平台规则与项目默认值冲突时提示用户。
 - 使用自有或获授权的角色、图片、音视频和字体；不对外公开用户提供的私人素材。
+
+## V4.0（当前主工作流）：从真实动作视频或图像素材生成表情包
+
+**最高优先级**：最终用户希望从一张角色参考图自动制作自然动作 GIF 时，优先调用所在智能体真实可用且获用户授权的**图像或视频生成工具**，而不是只写16条分镜或用整图晃动伪造动作。若执行环境没有任何生成模型，则提供可执行制作计划、请用户导入已有 MP4/GIF/PNG 或使用其获授权的生成工具，不要声称已完成模型生成。
+
+V4 三种可执行路线：
+
+1. **视频驱动（适合全身动作与复杂肢体表演）**：生成 \`generation/<slug>-video.txt\` 提示词 → 有实际视频能力的智能体/用户生成角色动作 MP4（纯绿幕、紫幕或真实透明背景，固定镜头无文字）→ \`studio_v4.py import\` 视频抽帧、透明处理、共同坐标变换、姿势筛选 → \`review\` → \`build\`。不得虚构模型权限、账户余额、免费额度或视频已生成。
+2. **图像关键帧（适合清晰表情与可控姿势）**：使用 \`prompts/<slug>.txt\`，先生成 000/005/008/015 关键锚点，再完成16张真正不同的 PNG；如使用4×4透明姿势图集，可由 V3 \`import-atlas\` 拆分。严禁复制一张静态图制造动画。
+3. **已有素材（最省事，不需要模型）**：用户提供独立 PNG/JPG/WebP 帧目录或已完成的动态 GIF/WebP，直接 \`studio_v4.py import\` 转成统一透明方形姿势；若只有普通有背景的视频，要先做受控抠像，不能假装得到正确透明角色。
+
+\`\`\`sh
+python scripts/studio_v4.py plan --character "示例角色" --reference "assets/character.png" --output workspaces/sample
+python scripts/studio_v4.py import workspaces/sample/production.json okay action.mp4 --background auto --mode cycle
+python scripts/studio_v4.py review workspaces/sample/production.json okay
+python scripts/studio_v4.py build workspaces/sample/production.json --font "/path/to/licensed-CJK-font.ttf"
+python scripts/studio_v4.py status workspaces/sample/production.json
+\`\`\`
+
+- **逐帧审核**：\`review\` 生成完全离线的 HTML 帧浏览器、联系表及质量 JSON，支持播放/暂停/上一帧/下一帧。检查人物脸、手部、表演与首尾，不能把仅仅通过数值检查当成用户验收。V4 导入的视频也不能只靠全画面平移/缩放通过完整表演门禁。
+- **视频切片**：V4 提供 \`--start\`、\`--duration\`、\`--mode auto|cycle|one-shot\`；cycle 尝试在真实视频帧中找接缝更小的运动段，但并不保证无缝。不能通过复制帧、倒放或仅平移来冒充自然演出。
+- **透明抠像**：优先已有 alpha；支持 green/magenta 色键，auto 能识别明显纯色背景。对于普通复杂背景或与色键撞色的角色，要求外部专业分割，不要错误地清除角色本体。
+- **批量与输出**：V3.1 的默认 16 独立 GIF、每个规划16帧、每批4个，以及**正方形、循环、单个≤500000字节**的默认目标保持不变。仍然调用经过验证的 V3 字幕和导出链路，不绕过质量门禁。
+- **外部生成方**：必须区分“已经有实际连接、确实可以执行的图像/视频生成工具”与“只有提示词、没有可执行模型”；尊重额外收费与用户明确授权。不要静默连接第三方账号、访问私人素材或擅自付费。
+
+操作指南 \`references/v4.md\`，旧 V3/图像动作命令仍兼容。**纯图像输入尚不能靠本地 Python 自动生成复杂的人体演出**；必须由模型或画师创作。
 
 ## 生产规范与默认值
 

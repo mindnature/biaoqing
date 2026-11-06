@@ -1,4 +1,4 @@
 interface:
-  display_name: "GIF Sticker Studio"
-  short_description: "通用逐帧动态表情包：方形GIF、批量制作、自动匹配字幕"
-  default_prompt: "使用 $gif-sticker-studio，依据我本次提供的角色图片或素材，制作适合即时通讯使用的动态GIF表情包。默认方形、每张不超过500000字节，16张一套、每张16帧、每批4张；如我自定义数量、文案、动作或画风，应优先遵从。不要套用任何特定用户的个人偏好或IP，避免整图摇摆冒充角色表演，字幕根据当前角色风格自适应，先做第一批供检查。"
+  display_name: "GIF Sticker Studio V4"
+  short_description: "从角色图、动作视频或已有GIF制作逐帧动态表情包"
+  default_prompt: "使用 $gif-sticker-studio 的 V4 主工作流，依据我提供的角色参考图与本次要求制作真正的角色动态表情包：优先使用你实际可用且得到授权的图像/视频生成能力输出动作视频或连续关键帧，再用 studio_v4.py 导入、透明化、逐帧审核和输出。没有模型权限时明确说明并支持导入现有 GIF/MP4/PNG，不要用静态图摇摆冒充真实动作。默认方形、单个 GIF 不超过500000字节、每套16个，每个16帧、每批4个，字幕按本次素材适配。"
