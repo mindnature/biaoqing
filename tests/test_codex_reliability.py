@@ -124,3 +124,15 @@ def test_codex_repo_scope_entry_exists_and_points_to_root():
     content=scope.read_text(encoding="utf8")
     assert "name: gif-sticker-studio" in content
     assert "../../../scripts/studio_v4.py" in content
+
+def test_codex_v4_build_command_applies_full_delivery_gate(tmp_path, capsys):
+    from studio_v4 import main
+    root, _ = ready_pack(tmp_path)
+    exit_code = main(["build", str(root / "production.json"), "--font", "DejaVuSans.ttf"])
+    assert exit_code == 0
+    response = json.loads(capsys.readouterr().out)
+    assert response["status"] == "technical_pass_visual_review_pending"
+    assert response["gif_count"] == 4
+    assert response["delivery_validation"] == "technical_pass_visual_review_pending"
+    assert response["platform_acceptance"] == "not_checked"
+    assert Path(response["batch_zip"]).exists()

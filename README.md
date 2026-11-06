@@ -9,19 +9,19 @@
 项目现在包含面向 Codex 的完整执行规范和两项可执行质量门禁：
 
 - **[Codex 执行规范](references/codex-execution.md)**：智能体自动判断是否拥有视频生成、图像生成或现成素材，选择最合适路线；不得把静态图摇摆当作真实角色表演。
-- **制作前检查** \`scripts/codex_doctor.py\`：检查本地环境、FFmpeg（仅视频需要）、中文字体和下一批真实动作帧是否齐备。它不会伪称 Codex 已拥有某个付费生成服务。
-- **交付前验收** \`scripts/validate_delivery.py\`：逐个核验压缩后 GIF 的正方形、循环、大小、帧数、时长、动作信号；核对 ZIP 的文案清单及每个 GIF 的实际字节，避免旧包、缺包或错包。
-- **\`studio_v4.py build\` 已串联前检与验收**，出错直接报告、不能伪称完成；美术质量与文字错字仍必须人工预览。
+- **制作前检查** `scripts/codex_doctor.py`：检查本地环境、FFmpeg（仅视频需要）、中文字体和下一批真实动作帧是否齐备。它不会伪称 Codex 已拥有某个付费生成服务。
+- **交付前验收** `scripts/validate_delivery.py`：逐个核验压缩后 GIF 的正方形、循环、大小、帧数、时长、动作信号；核对 ZIP 的文案清单及每个 GIF 的实际字节，避免旧包、缺包或错包。
+- **`studio_v4.py build` 已串联前检与验收**，出错直接报告、不能伪称完成；美术质量与文字错字仍必须人工预览。
 
 首次使用可以先运行：
 
-\`\`\`bash
+```bash
 python scripts/studio_v4.py doctor --stage plan
 # 视频来源才需要 ffmpeg，运行：
 python scripts/studio_v4.py doctor --stage import --route video
-\`\`\`
+```
 
-Codex 通过完整仓库根目录安装此 Skill，保留 \`SKILL.md\`、\`scripts/\`、\`references/\`；如果是直接克隆并在仓库中启动 Codex，\`.agents/skills/gif-sticker-studio/SKILL.md\` 提供项目级发现入口。**不能只下载这个入口而不安装脚本。** 当前 Codex 对 Skill 目录的自动发现规则以官方文档为准。
+Codex 通过完整仓库根目录安装此 Skill，保留 `SKILL.md`、`scripts/`、`references/`；如果是直接克隆并在仓库中启动 Codex，`.agents/skills/gif-sticker-studio/SKILL.md` 提供项目级发现入口。**不能只下载这个入口而不安装脚本。** 当前 Codex 对 Skill 目录的自动发现规则以官方文档为准。
 
 ## V4.0｜真正的动画素材接入：图像 / 视频 / 已有素材三条路线
 
@@ -31,7 +31,7 @@ Codex 通过完整仓库根目录安装此 Skill，保留 \`SKILL.md\`、\`scrip
 
 **方式一：通过 Codex 等智能体生成动画视频，再导入**
 
-\`\`\`sh
+```sh
 # 创建默认一套16个表情，4张一批；同时为每个表情写好图生视频提示词
 python scripts/studio_v4.py plan \
   --character "示例角色" --reference "assets/character.png" \
@@ -50,17 +50,17 @@ python scripts/studio_v4.py review workspaces/sample/production.json okay
 # 第一批4个真实动作均导入并通过质量检查后，使用已有生产管线导出
 python scripts/studio_v4.py build workspaces/sample/production.json \
   --font "/path/to/licensed-CJK-font.ttf"
-\`\`\`
+```
 
 **方式二：不用视频模型，直接导入现有 GIF 或 PNG 帧**
 
-\`\`\`sh
+```sh
 python scripts/studio_v4.py import workspaces/sample/production.json \
   okay /path/to/animated.gif
 # 或 source 换成包含连续 PNG/JPG/WebP 的目录
-\`\`\`
+```
 
-**方式三：图像生成关键姿势**。打开 \`prompts/<action>.txt\`，由具备图像生成能力的智能体按固定角色参考图创作真实连续的 16 张动作 PNG（也可先生成动作图集并拆分）；然后走同样的 review/build。与视频路线相比，这条路线可能更易维持画面细节，但人物动作的连续性需要重点检查。
+**方式三：图像生成关键姿势**。打开 `prompts/<action>.txt`，由具备图像生成能力的智能体按固定角色参考图创作真实连续的 16 张动作 PNG（也可先生成动作图集并拆分）；然后走同样的 review/build。与视频路线相比，这条路线可能更易维持画面细节，但人物动作的连续性需要重点检查。
 
 **具体边界**：工具不内置 GPT/Grok 或任何图生视频模型，也不自动代替用户登录、付费或授权服务。直接读取 MP4 需要安装 FFmpeg；透明背景只支持真实 alpha 或色键绿幕/紫幕的确定性处理，复杂实拍背景仍需外部抠像工具。自动循环选择和质量报告是启发式筛查，**不能保证人物真实、动作自然或所有平台审核通过**。
 
