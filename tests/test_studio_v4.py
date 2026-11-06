@@ -136,8 +136,7 @@ def test_real_mp4_import_with_ffmpeg(tmp_path):
          "-framerate","16","-i",str(originals/"frame-%03d.png"),
          "-c:v","mpeg4","-pix_fmt","yuv420p","-y",str(video)]
     result=subprocess.run(cmd,capture_output=True,text=True,timeout=45,check=False)
-    if result.returncode:
-        pytest.skip("This ffmpeg build cannot encode MPEG4")
+    assert result.returncode == 0, result.stderr
     loaded=import_media(video,root/"production.json",p["actions"][0]["slug"],
                         duration=2.0,mode="cycle")
     assert loaded["source_kind"]=="video"
