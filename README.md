@@ -4,6 +4,27 @@
 
 > 项目状态：**可运行的 Skill 与 Python 导出工具**，不是无需模型的「一张图自动变成完整动画」服务。复杂动作需要具备图像生成能力的智能体先制作连续关键帧；Python 脚本承担合成、压缩与验证。视觉效果需要人工审核。
 
+## V3.0｜真正逐帧角色表演（当前默认）
+
+**已从「合成和压缩 GIF」升级为具备表演动作门禁的工作流**。V3 不能凭空生成关键姿势：需要有图像生成能力的 Codex/智能体或画师，先制作角色 16 张连续动作 PNG。针对你反馈的「人物没动作、只有轻动态」，现在会对裁剪对齐后的姿势进行比较，只有整图平移、缩放或少量重复画面会被拦截，**不会自动偷偷退回轻动态模式**。
+
+```sh
+# 角色动作分镜：为每条表情生成16帧方案，默认140ms/帧
+python scripts/studio_v3.py plan --character "一然" --reference "private/role.png" --actions "哈哈,委屈,收到,哼" --output workspaces/yiran
+
+# 使用智能体图像工具生成、核对16张真正独立的动作帧，放入 frames/<slug>/000.png 到 015.png
+# 或把4x4透明姿势图集准确拆解（每一格必须真实变化，不能只是整图移动）
+python scripts/studio_v3.py import-atlas atlas.png workspaces/yiran/frames/hmph
+
+# 检测是否仅轻动态、帧数不足、无真实脸部与身体局部变化
+python scripts/studio_v3.py inspect workspaces/yiran/frames/hmph --report workspaces/yiran/hmph.json
+
+# 全部动作帧就绪后，统一合成透明GIF，字幕后期添加，微信压缩且保留不少于12帧
+python scripts/studio_v3.py build workspaces/yiran/production.json --font "/path/to/authorized-CJK-font.ttf" --heart
+```
+
+V3 对原始动作帧和最终压缩 GIF 都执行检查，并保存质量报告。**数值通过不代表动作自然或微信审核通过**，仍需实际播放与逐帧目视确认。模型没有能力生成连续关键帧时会明确失败，不会伪称完整表演。更多细节：[V3.0 逐帧表演说明](references/v3.md)。
+
 ## V2.0 新能力：真实动作制作工作流
 
 **一张角色图不会自动被本脚本变成高质量逐帧动画。** V2 提供可执行的动作分镜、量化异常检测、显式单帧修复和批量合成；必须先由支持图像生成的智能体或绘图人员制作 16 张真实、连续、有透明背景的动作关键帧。

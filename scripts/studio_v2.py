@@ -279,7 +279,7 @@ def repair(source: Path, corrections: Path, dest: Path, count: int = FRAME_COUNT
     return log
 
 
-def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int = 500000, heart: bool = False):
+def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int = 500000, heart: bool = False, min_output_frames: int = 4):
     from export_keyframes import make_frames, save_and_verify
     from wechat_export import export_one
 
@@ -307,7 +307,7 @@ def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int
         atlas_path = root / "build" / "atlases" / f"{slug}.png"
         atlas(frames, atlas_path)
         entry = {"text": action["caption"], "render_caption": False,
-                 "frames": [{"cell": [i % GRID, i//GRID], "duration": 120}
+                 "frames": [{"cell": [i % GRID, i//GRID], "duration": action.get("keyframes", [{}] * len(frames))[i].get("duration_ms", 120)}
                             for i in range(len(frames))]}
         with Image.open(atlas_path) as source:
             raw_frames, durations = make_frames(source.convert("RGBA"), [GRID, GRID], entry, font, 0)
@@ -316,7 +316,7 @@ def build(project_file: Path, font: str, *, strict: bool = False, max_bytes: int
         save_and_verify(raw_path, raw_frames, durations)
         done_path = root / "build" / "wechat" / f"{slug}.gif"
         export = export_one(raw_path, done_path, max_bytes,
-                            text=action["caption"], font=font, heart=heart)
+                            text=action["caption"], font=font, heart=heart, min_frames=min_output_frames)
         output.append({"caption": action["caption"], "slug": slug, "gif": str(done_path),
                        "export": export, "quality": report["status"],
                        "visual_acceptance": "pending"})
