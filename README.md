@@ -4,6 +4,25 @@
 
 > **能力边界**：本仓库支持动作分镜、视频/GIF/PNG 动作素材导入、抽帧、轻量抠像、逐帧审核、字幕、压缩和打包，不内置图像或视频生成模型；真实角色表演需要用户的现成动画素材或外部生成工具；单张静态图摇摆或缩放不等于逐帧动画。
 
+## Codex 安装后，如何尽量减少出错？
+
+项目现在包含面向 Codex 的完整执行规范和两项可执行质量门禁：
+
+- **[Codex 执行规范](references/codex-execution.md)**：智能体自动判断是否拥有视频生成、图像生成或现成素材，选择最合适路线；不得把静态图摇摆当作真实角色表演。
+- **制作前检查** \`scripts/codex_doctor.py\`：检查本地环境、FFmpeg（仅视频需要）、中文字体和下一批真实动作帧是否齐备。它不会伪称 Codex 已拥有某个付费生成服务。
+- **交付前验收** \`scripts/validate_delivery.py\`：逐个核验压缩后 GIF 的正方形、循环、大小、帧数、时长、动作信号；核对 ZIP 的文案清单及每个 GIF 的实际字节，避免旧包、缺包或错包。
+- **\`studio_v4.py build\` 已串联前检与验收**，出错直接报告、不能伪称完成；美术质量与文字错字仍必须人工预览。
+
+首次使用可以先运行：
+
+\`\`\`bash
+python scripts/studio_v4.py doctor --stage plan
+# 视频来源才需要 ffmpeg，运行：
+python scripts/studio_v4.py doctor --stage import --route video
+\`\`\`
+
+Codex 通过完整仓库根目录安装此 Skill，保留 \`SKILL.md\`、\`scripts/\`、\`references/\`；如果是直接克隆并在仓库中启动 Codex，\`.agents/skills/gif-sticker-studio/SKILL.md\` 提供项目级发现入口。**不能只下载这个入口而不安装脚本。** 当前 Codex 对 Skill 目录的自动发现规则以官方文档为准。
+
 ## V4.0｜真正的动画素材接入：图像 / 视频 / 已有素材三条路线
 
 从 V4.0 起，**不必先手工准备好全部 16 张 PNG**。用户有权使用的动画视频（MP4/MOV/WebM）或现有动态 GIF、连续 PNG 可以直接导入：视频抽帧（需要 FFmpeg）→ 检测绿幕/紫幕或已有透明通道 → 色键透明化 → 统一坐标与方形画布 → 16 张真实姿势 → 动作 QA → 本地逐帧可视化预览 → 继续使用现有字幕、500KB GIF 导出与 4 张/批 ZIP。

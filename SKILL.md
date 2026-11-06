@@ -1,83 +1,67 @@
 ---
 name: gif-sticker-studio
-description: V4通用GIF表情包制作：支持通过外部生成模型的图像关键帧、视频抽帧与现有PNG/GIF素材三种路线生成真实角色动作；提供透明处理、逐帧本地预览、字幕适配和微信方形GIF≤500000字节导出。默认16张每套，每个16帧，每批4张。
+description: For Codex tasks making animated GIF/WeChat stickers from a character photo, drawing, video, GIF or sprite sheet; plan coordinated frame-by-frame acting, use the actually available image/video tools, review motion and character consistency, style Chinese captions, and export square looping GIFs up to 500000 bytes. Does not bundle a generation model.
 ---
 
-# GIF Sticker Studio｜通用动态表情包 Skill
+# GIF Sticker Studio｜Codex 执行 Skill（V4.1）
 
-## 总原则：面向不同使用者和任何合法角色素材
+## 任务目标与责任边界
 
-- **不要假定用户的姓名、职业、IP 名称、审美偏好、国籍、性别或常用台词**。角色图以本次用户输入为准；没有参考图时说明需提供或通过可用图像工具创建。
-- 支持宠物、人物、卡通、二维插画、实拍、像素角色、手作、潮玩、绘画等。优先尊重上传参考图的主色、造型、材质、镜头、比例和关键装饰；不能用预设的其他角色替换。
-- 表情文案、角色画风、字体色彩、动作类型由用户需求与具体素材决定。默认不绑定毛笔字、粉红字、东方题材、特定宠物或个人品牌。
-- **只把用户明确指定的目标规格当硬性约束**；如果用户没说，则采用下面的项目默认值，并在目标平台规则与项目默认值冲突时提示用户。
-- 使用自有或获授权的角色、图片、音视频和字体；不对外公开用户提供的私人素材。
+把用户本次提供或合法授权的角色/宠物/图片做成 **真正有表情和肢体运动的动态 GIF 表情包**。优先完成用户任务，而不是只写分镜、安装说明或静态动图。**工具可用性、原始动作素材、真实生成结果必须先被证实；不许虚构生成过程、模型权限、下载链接或验收通过。**
 
-## V4.0（当前主工作流）：从真实动作视频或图像素材生成表情包
+默认：正方形、循环 GIF、每个≤500000字节；一套16个独立表情（可自定义1–32）、每张规划16个独立姿势、每批4个，最终压缩不得少于12帧。用户明确指定的文案、数量、风格和动作优先。轻动态只有用户明确要求时才可采用，不能用一张图的缩放/晃动冒充角色表演。
 
-**最高优先级**：最终用户希望从一张角色参考图自动制作自然动作 GIF 时，优先调用所在智能体真实可用且获用户授权的**图像或视频生成工具**，而不是只写16条分镜或用整图晃动伪造动作。若执行环境没有任何生成模型，则提供可执行制作计划、请用户导入已有 MP4/GIF/PNG 或使用其获授权的生成工具，不要声称已完成模型生成。
+## 先执行的决策，不要依赖猜测
 
-V4 三种可执行路线：
+1. 识别用户**本轮**素材：角色图片、GIF/视频、连续帧目录、图集或是否需要原创角色。不要使用前任用户的个人角色/偏好。若角色参考必不可少且未提供，才请用户提供。
+2. **发现并检查当前 Codex 实际可调用的媒体工具**（不靠项目名称推断）：可生成真实视频则优先视频表演；仅有图像生成则生成至少4个锚点姿势、再补16张连续关键帧；已有动态视频/GIF/帧则直接导入。不内置视频模型、无需API密钥作为本项目配置。
+3. 若只有文本代码执行、没有媒体生成工具且用户也没有动作素材：可以提供真实、可执行的制作计划和所缺的资源，**不得声称已经制作表情包**，不得偷偷回退静态轻动态。外部付费、发送私有图像、连接账号须尊重当前授权。
+4. 用 \`python scripts/studio_v4.py doctor --stage plan\` 确认本地依赖；视频路线 \`doctor --stage import --route video\` 检查 FFmpeg。Pillow必需，FFmpeg仅视频导入必需。
+5. 本地运行时从**本 Skill 根目录**执行 \`scripts/...\`。当前是克隆的 GitHub 仓库时可按仓库根目录运行；如仅安装了缺少 scripts 的单一说明文件，先正确安装完整仓库而不是编造可执行程序。
 
-1. **视频驱动（适合全身动作与复杂肢体表演）**：生成 \`generation/<slug>-video.txt\` 提示词 → 有实际视频能力的智能体/用户生成角色动作 MP4（纯绿幕、紫幕或真实透明背景，固定镜头无文字）→ \`studio_v4.py import\` 视频抽帧、透明处理、共同坐标变换、姿势筛选 → \`review\` → \`build\`。不得虚构模型权限、账户余额、免费额度或视频已生成。
-2. **图像关键帧（适合清晰表情与可控姿势）**：使用 \`prompts/<slug>.txt\`，先生成 000/005/008/015 关键锚点，再完成16张真正不同的 PNG；如使用4×4透明姿势图集，可由 V3 \`import-atlas\` 拆分。严禁复制一张静态图制造动画。
-3. **已有素材（最省事，不需要模型）**：用户提供独立 PNG/JPG/WebP 帧目录或已完成的动态 GIF/WebP，直接 \`studio_v4.py import\` 转成统一透明方形姿势；若只有普通有背景的视频，要先做受控抠像，不能假装得到正确透明角色。
+## 严格的“制作 → 审核 → 交付”流程
 
-\`\`\`sh
-python scripts/studio_v4.py plan --character "示例角色" --reference "assets/character.png" --output workspaces/sample
-python scripts/studio_v4.py import workspaces/sample/production.json okay action.mp4 --background auto --mode cycle
-python scripts/studio_v4.py review workspaces/sample/production.json okay
-python scripts/studio_v4.py build workspaces/sample/production.json --font "/path/to/licensed-CJK-font.ttf"
-python scripts/studio_v4.py status workspaces/sample/production.json
+### 计划
+\`\`\`bash
+python scripts/studio_v4.py plan --character "本次角色名" --reference "assets/character.png" --output workspaces/session
 \`\`\`
+若用户给定动作文字则添加 \`--actions "收到,哈哈,抱抱,再见"\`；只要求数量则 \`--count N\`。产生 \`production.json\`、独立动作分镜与 \`generation/<slug>-video.txt\`。这些是**计划**，不是生成结果。
 
-- **逐帧审核**：\`review\` 生成完全离线的 HTML 帧浏览器、联系表及质量 JSON，支持播放/暂停/上一帧/下一帧。检查人物脸、手部、表演与首尾，不能把仅仅通过数值检查当成用户验收。V4 导入的视频也不能只靠全画面平移/缩放通过完整表演门禁。
-- **视频切片**：V4 提供 \`--start\`、\`--duration\`、\`--mode auto|cycle|one-shot\`；cycle 尝试在真实视频帧中找接缝更小的运动段，但并不保证无缝。不能通过复制帧、倒放或仅平移来冒充自然演出。
-- **透明抠像**：优先已有 alpha；支持 green/magenta 色键，auto 能识别明显纯色背景。对于普通复杂背景或与色键撞色的角色，要求外部专业分割，不要错误地清除角色本体。
-- **批量与输出**：V3.1 的默认 16 独立 GIF、每个规划16帧、每批4个，以及**正方形、循环、单个≤500000字节**的默认目标保持不变。仍然调用经过验证的 V3 字幕和导出链路，不绕过质量门禁。
-- **外部生成方**：必须区分“已经有实际连接、确实可以执行的图像/视频生成工具”与“只有提示词、没有可执行模型”；尊重额外收费与用户明确授权。不要静默连接第三方账号、访问私人素材或擅自付费。
+### 产生真实动作素材
+- 视频：有实际权限的生成工具基于参考图生成固定镜头、单角色、明显头/脸/肩/手/身体变化的真实视频文件；优先原生 alpha 或纯绿/紫幕（角色不得与色键同色），无文字/其他人物/镜头推拉。调用外部服务前遵守用户授权与付费条件。
+- 图像：生成真正不同的16张角色姿势 PNG（先审核 000/005/008/015），眼神、五官和身体相互配合，16张不能是重复图、全图平移或放大。
+- 已有：使用用户的动画 GIF、MP4 或连续 PNG，不必调用模型。
+- 有数据后才可执行：
+\`\`\`bash
+python scripts/studio_v4.py import workspaces/session/production.json okay action.mp4 --background auto --mode cycle
+python scripts/studio_v4.py review workspaces/session/production.json okay
+\`\`\`
+\`import\` 选择真实动作帧并报告 QA；\`review\` 生成完全离线 HTML、联系表、JSON。逐帧检查角色身份、眼睛、嘴、手、服装、动作高潮及循环；对异常帧重新生成/替换，再复查。**程序化筛查无法自动修复坏脸/手。** 字幕不能让图像模型逐帧手写，应由后期程序固定叠加。
 
-操作指南 \`references/v4.md\`，旧 V3/图像动作命令仍兼容。**纯图像输入尚不能靠本地 Python 自动生成复杂的人体演出**；必须由模型或画师创作。
+### 制作第一批并验证
+\`\`\`bash
+python scripts/studio_v4.py doctor --stage build --project workspaces/session/production.json --font "/path/to/licensed-CJK.ttf"
+python scripts/studio_v4.py build workspaces/session/production.json --font "/path/to/licensed-CJK.ttf"
+python scripts/studio_v4.py verify workspaces/session/production.json --batch 1
+\`\`\`
+\`build\` 已集成**前置检查 + 成品交付校验**：源帧、字幕字体是否可用、动作 QA、正方形、时长、循环、≥12帧、≤500000字节、每个 GIF 与 ZIP 清单/内容一一匹配。失败则**停止并说明原因，不宣称完成**。输出仍须人工查看字幕错别字、五官、画面美感和动态自然度。
 
-## 生产规范与默认值
+先审第一批4个，得到实际反馈再继续下一批；用 \`python scripts/studio_v4.py status workspaces/session/production.json\` 查进度。完成全部批次后：
+\`\`\`bash
+python scripts/studio_v4.py verify workspaces/session/production.json --all
+\`\`\`
+不要把“自动测试通过”描述为“平台审核通过”。交付时说明完成张数、GIF/ZIP准确路径、是否通过技术校验、哪些仍需视觉审查；无法完成时列明阻断原因和已有的真实成果。
 
-| 项目 | 默认与优先级 |
-| --- | --- |
-| 独立表情 GIF | 默认16张；用户指定数量或文案时覆盖，支持1–32 |
-| 分批制作 | 每批4个，先验收第一批，再继续 |
-| 逐帧演出 | 每张设计16个连续姿势，默认140ms/帧，输出不少于12帧 |
-| 文件 | 正方形、循环 GIF；目标每张≤500000字节 |
-| 画面 | 优先透明背景；用户上传照片或带背景素材时尊重既有构图 |
-| 字幕 | 默认开启自动适配，独立后期叠加，不使用字幕背景板 |
-| 交付 | 每个表情独立 GIF、批次 ZIP、完整 ZIP、质量报告 |
+## 字幕与画风
 
-默认的16个通用台词：好的、收到、谢谢、点赞；哈哈哈、爱你哟、委屈、大哭；生气、无语、疑惑、震惊；么么哒、加油、拜拜、晚安。**这只是可替换的日常预设**，不应限制用户创建其它文字、题材或角色表演。
+每张表情独立设计动作，整套角色保持统一外观和字体体系。自动适配可用 \`classic\`、\`cute\`、\`heritage\`、\`brush\`，支持合法授权字体及 \`--brush-font\` 书法字体；不规定任何特定 IP、宗教、职业或国别美学。不得添加字幕底板/色条；缩略图中需清楚、字形正确、不遮住重要表情。字体是否缺字以及实际视觉适配**必须人为检查**，不是 Pillow 成功载入就算通过。
 
-## 操作步骤
+## 必看参考
 
-1. **识别素材和用户意图**：确定角色类型、风格、所需词语与数量、动画和平台需求。只在缺少不可替代的必要文件时询问，不反复要求确认已提供的信息。
-2. **创建分镜**：默认运行 `python scripts/studio_v3.py plan --character "示例角色" --reference "assets/character.png" --output workspaces/sample`。如用户给出文案，使用 `--actions "好的,谢谢,..."`；只给数量时使用 `--count N`。
-3. **制作真实关键帧**：先设计四个关键姿势（000、005、008、015），确认身份一致，再生成完整的16张不同姿势、同尺寸的透明 PNG 到 `frames/<slug>/000.png ... 015.png`。固定视角，变化必须体现情绪、眼神、脸部、手部和肢体的合理协调。
-4. **禁止假动作**：不要把静态图整体平移、缩放、旋转、上下摇摆或复制成16帧冒充逐帧表演。不得静默降级为轻动态。缺乏实际图像生成能力时明确说明，不能声称已经制作了16个 GIF。
-5. **质量检查**：执行 `python scripts/studio_v3.py inspect workspaces/sample/frames/okay` 等逐个审查；修正空白、裁切、位置突跳、人物漂移、衣饰和手部变形，再合成无文字 GIF。
-6. **适配字幕**：由程序分析素材，选择 `auto` 或在用户指示下指定 `classic|cute|heritage|brush`。排版与造型协调、保证缩略图可读、不得遮挡五官，也不得逐帧漂移。使用用户有合法使用权的中文字体文件；书法题字应使用真实书法字形而非冒充。
-7. **分批导出**：执行 `python scripts/studio_v3.py build workspaces/sample/production.json --font "/path/to/licensed-CJK-font.ttf"`。每批4个，分别质量审查和交付，完成后生成完整 ZIP。使用 `status` 查询进度。
-8. **人工验收**：审看原始动作与压缩成品的眼神、姿势、动作连贯性、字幕、循环和色彩；通过程序验证不等于自然、美观、用户确认或微信等平台审核通过。
+- \`references/codex-execution.md\`：工具选择、失败恢复、质量验收与交付合同。
+- \`references/v4.md\`：媒体导入细节和背景类型要求。
+- \`references/caption-v32.md\`：字幕配色与视觉审查。
+- \`scripts/codex_doctor.py\`、\`scripts/validate_delivery.py\`：可独立运行的机器检查。
+- \`README.md\`：完整安装说明和兼容性边界。
 
-## 字幕适配原则
-
-- `auto` 默认综合像素颜色、透明度、亮度选择，并不是人物/画风的语义识别器。发现误判可以覆写；以用户本次审美反馈为准，不把历史个人偏好固化为所有用户默认。
-- `classic` 暖白字与深轮廓，适合高对比的照片或图像；`cute` 柔和明亮色彩的可爱风格；`heritage` 适合暖色插画；`brush` 适合确有书法/水墨氛围的留白构图。
-- `brush` 需额外提供 `--brush-font` 所指向的有合法使用权的书法字体。缺失时不能谎称已实现毛笔效果。字体文件不得随仓库分发。
-- 同一角色的整套 GIF 尽量保持一致字幕视觉系统和相同运动区域；**不同角色之间无需共享一种字体或配色**。
-- 不直接让图像模型在每帧写汉字。文字后期独立渲染，避免错字、跳字、字形变形；无背景板、无横向字幕条、无不必要的装饰。
-- 如果素材已经含有不可移除的文字，先检查是否重复、是否需要重画无字关键帧，不直接双重叠字。
-
-## 工程及平台边界
-
-- `scripts/studio_v3.py` 是默认逐帧制作入口。V2 与旧合成器保留兼容，`export_pack.py` 的整图轻动态仅在明确请求时使用。
-- `scripts/wechat_export.py` 默认为正方形、最多500000字节、保留至少指定数量的帧（逐帧流程至少12帧），可以独立使用。PNG 透明背景在 GIF 调色板量化后需检查边缘。
-- 项目本身不会从一张图自动创造高质量完整肢体动作；需要图像生成工具或创作者先提供实际关键帧。动画质量、字幕视觉和平台规格都必须最终人工确认。
-- 本 Skill 是公共项目，不记录、推断或传播任何使用者的私人画像、个人口头习惯、特定角色设定；使用者当前提供的角色信息只用于当前作品。
-
-更多细节：[完整表演](references/v3.md)、[分批制作](references/v31.md)、[字幕](references/caption-v32.md)、[书法选项](references/typography-v33.md)、[微信导出](references/wechat.md)。
+**安全底线**：不要将用户图片、生成帧、字体和报告提交到公共仓库；不要静默调用可能收费的外部模型；不要在没真正产出 GIF 时宣称已完成。

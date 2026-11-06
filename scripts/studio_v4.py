@@ -347,6 +347,14 @@ def main(argv=None):
     p.add_argument("--heart",action="store_true")
     p=sub.add_parser("status",help="Show production batch progress")
     p.add_argument("project",type=Path)
+    p=sub.add_parser("doctor",help="Check dependencies and next-batch readiness before spending model calls")
+    p.add_argument("--stage",choices=["plan","import","build"],default="plan")
+    p.add_argument("--route",choices=["auto","video","image","existing"],default="auto")
+    p.add_argument("--project",type=Path);p.add_argument("--font");p.add_argument("--brush-font")
+    p=sub.add_parser("verify",help="Validate actual exported GIFs and ZIP content")
+    p.add_argument("project",type=Path)
+    group=p.add_mutually_exclusive_group(required=True)
+    group.add_argument("--batch",type=int);group.add_argument("--all",action="store_true")
     args=cli.parse_args(argv)
     if args.command=="plan":
         captions=[v.strip() for v in args.actions.split(",")] if args.actions else None
@@ -361,11 +369,42 @@ def main(argv=None):
         response=review(args.project,args.action,output=args.output)
     elif args.command=="status":
         response=pack_progress(args.project)
+    elif args.command=="doctor":
+        from codex_doctor import preflight
+        response=preflight(stage=args.stage,route=args.route,project=args.project,
+                           font=args.font,brush_font=args.brush_font)
+    elif args.command=="verify":
+        from validate_delivery import verify_batch,verify_complete
+        response=(verify_complete(args.project) if args.all else
+                  verify_batch(args.project,args.batch))
     else:
-        response=build_v3(args.project,args.font,heart=args.heart,
-                          caption_style=args.caption_style,brush_font=args.brush_font)
+        # Fail before rendering if the next batch is missing art or a usable font.
+        from codex_doctor import preflight
+        from validate_delivery import verify_batch,verify_complete
+        ready=preflight(stage="build",project=args.project,font=args.font,
+                        brush_font=args.brush_font)
+        if ready["status"]=="blocked":
+            raise ValueError("Preflight failed: "+", ".join(ready["blockers"])+
+                             ". Run studio_v4.py doctor --stage build for details")
+        result=build_v3(args.project,args.font,heart=args.heart,
+                        caption_style=args.caption_style,brush_font=args.brush_font)
+        final_check=verify_batch(args.project,result["batch"])
+        if final_check["status"]=="blocked":
+            raise ValueError("Delivery verification failed: "+
+                             "; ".join(final_check["issues"]))
+        if result.get("complete_pack"):
+            complete=verify_complete(args.project)
+            if complete["status"]=="blocked":
+                raise ValueError("Complete pack verification failed: "+
+                                 "; ".join(complete["issues"]))
+        response={"status":"technical_pass_visual_review_pending",
+                  "batch":result["batch"],"batch_zip":result["zip"],
+                  "gif_count":len(result["actions"]),
+                  "delivery_validation":final_check["status"],
+                  "complete_pack":result.get("complete_pack"),
+                  "user_acceptance":"pending","platform_acceptance":"not_checked"}
     print(json.dumps(response,ensure_ascii=False,indent=2))
-    return 0
+    return 2 if response.get("status")=="blocked" else 0
 
 
 if __name__=="__main__":
