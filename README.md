@@ -51,6 +51,8 @@ python scripts/wechat_export.py build/gifs build/wechat --captions captions.json
 
 如源 GIF 本身已带文字，**不要再次添加字幕**，否则文字会重复。此导出器把整个源动画按原始比例缩入方形画布，在下方给新字幕留空间；生成 GIF 是有损压缩，体积过大时将降低调色板、分辨率或帧数；若压缩后仍超过指定大小就直接失败，不会伪称通过。保持总时长，但降帧有可能损失动作流畅度，须再次人工审核。
 
+**要让微信字幕只叠加一次：**高清关键帧动作清单必须保留非空 `text`（用于命名），同时在 entry 中设置 `"render_caption": false`；这样上游只合成无字幕的角色动作。然后用 `wechat_export.py --text 收到 --font ...` 添加唯一的固定字幕。可参考 `examples/action-manifest.example.json`（须自行提供 4×4 透明关键帧图集 `poses.png`）。
+
 原项目各合成器的指令示例：
 
 ```sh

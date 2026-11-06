@@ -1,0 +1,1 @@
+Sample PNG/GIF assets from the original project are intentionally not redistributed. The original MIT-licensed exporters are included. For upstream demonstrations visit https://github.com/WoYun520/pixel-gif-sticker-pack/tree/main/examples . Use your own or authorized reference pictures. The template here is for reference and cannot produce animation until you supply an atlas.
