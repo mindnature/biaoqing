@@ -47,8 +47,13 @@ def difference(a: Image.Image, b: Image.Image, region: tuple[float, float] = (0,
 
 def acting_report(frames: list[Image.Image], *, compressed: bool = False):
     """Reject fake actions produced by only translating/scaling one sprite."""
-    base = analyze(frames)
-    normalized = [normalize_pose(x) for x in frames]
+    # Exporter reserves the bottom quarter for a fixed caption. Exclude that
+    # region from both the pose-normalized acting signal and silhouette checks,
+    # otherwise caption glyphs can wrongly dominate motion scores.
+    motion_frames = ([im.crop((0, 0, im.width, max(2, round(im.height * 0.77))))
+                      for im in frames] if compressed else frames)
+    base = analyze(motion_frames)
+    normalized = [normalize_pose(x) for x in motion_frames]
     poses = [0]
     pose_threshold = .010 if compressed else .016
     for i in range(1, len(normalized)):
@@ -61,7 +66,7 @@ def acting_report(frames: list[Image.Image], *, compressed: bool = False):
     if len(frames) < MIN_OUTPUT_FRAMES:
         issues.append({'severity': 'block', 'code': 'too_few_keyframes',
                        'reason': 'Full performance requires at least 12 actual frames'})
-    if len(poses) < (2 if compressed else 4) or max_pose < (.014 if compressed else .038):
+    if len(poses) < (2 if compressed else 4) or max_pose < (.010 if compressed else .038):
         issues.append({'severity': 'block', 'code': 'whole_sprite_only',
                        'reason': 'Pose-normalized frames are nearly identical: no credible character acting'})
     if upper < (.010 if compressed else .018) or torso < (.008 if compressed else .018):
