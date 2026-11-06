@@ -55,7 +55,7 @@ def make_frames(atlas, grid, entry, font_path, font_index):
     tw, th = round((union[2]-union[0])*ratio), round((union[3]-union[1])*ratio)
     label = Image.new('RGBA', (SIZE, SIZE))
     pen = ImageDraw.Draw(label)
-    text = entry['text'] if entry.get('render_caption', True) else ''
+    text = entry['text']
     size = 62 if len(text) <= 4 else 56
     font = ImageFont.truetype(font_path, size, index=font_index)
     while font.getlength(text) > 440:

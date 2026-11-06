@@ -4,6 +4,26 @@
 
 > 项目状态：**可运行的 Skill 与 Python 导出工具**，不是无需模型的「一张图自动变成完整动画」服务。复杂动作需要具备图像生成能力的智能体先制作连续关键帧；Python 脚本承担合成、压缩与验证。视觉效果需要人工审核。
 
+## V2.0 新能力：真实动作制作工作流
+
+**一张角色图不会自动被本脚本变成高质量逐帧动画。** V2 提供可执行的动作分镜、量化异常检测、显式单帧修复和批量合成；必须先由支持图像生成的智能体或绘图人员制作 16 张真实、连续、有透明背景的动作关键帧。
+
+~~~sh
+# 1. 为一然生成9种表情动作分镜与独立的制作提示词
+python scripts/studio_v2.py plan --character "一然" --reference "private/yiran.png" --actions "哈哈,委屈,收到,哼,嗯？,晚安,早安,加油,拜拜" --output workspaces/yiran
+
+# 2. 用智能体按照 prompts/*.txt 生成、审核并保存每张16帧动作PNG：000.png~015.png
+# 3. 合成之前检测帧级问题
+python scripts/studio_v2.py inspect workspaces/yiran/frames/received --report workspaces/yiran/received-review.json
+
+# 4. 把所有动作的16张PNG准备好后，单命令生成 GIF / ZIP / 检查报告
+python scripts/studio_v2.py build workspaces/yiran/production.json --font "/path/to/CJK-Font.ttf" --heart
+~~~
+
+\`scripts/studio_v2.py repair\` 支持按照人工指定的替换图和位置偏移修复帧，并保留修复记录，不会错误地声称程序可自动重绘变形的手或脸。
+
+详细功能、目录示意、问题处理与边界：**[V2.0 操作说明](references/v2.md)**。
+
 ## 从零开始（推荐）
 
 1. 在 Codex 发送：`请从 https://github.com/mindnature/biaoqing 安装并使用这个 Skill。`
