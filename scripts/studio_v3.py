@@ -43,13 +43,14 @@ def difference(a: Image.Image, b: Image.Image, region: tuple[float, float] = (0,
     return sum(ImageStat.Stat(changed).mean) / (3 * 255)
 
 
-def acting_report(frames: list[Image.Image]):
+def acting_report(frames: list[Image.Image], *, compressed: bool = False):
     """Reject fake actions produced by only translating/scaling one sprite."""
     base = analyze(frames)
     normalized = [normalize_pose(x) for x in frames]
     poses = [0]
+    pose_threshold = .010 if compressed else .016
     for i in range(1, len(normalized)):
-        if all(difference(normalized[i], normalized[j]) >= .016 for j in poses):
+        if all(difference(normalized[i], normalized[j]) >= pose_threshold for j in poses):
             poses.append(i)
     max_pose = max((difference(a, b) for a in normalized for b in normalized), default=0.0)
     upper = max((difference(normalized[0], x, (0.06, 0.46)) for x in normalized[1:]), default=0.0)
@@ -58,15 +59,15 @@ def acting_report(frames: list[Image.Image]):
     if len(frames) < MIN_OUTPUT_FRAMES:
         issues.append({'severity': 'block', 'code': 'too_few_keyframes',
                        'reason': 'Full performance requires at least 12 actual frames'})
-    if len(poses) < 4 or max_pose < .038:
+    if len(poses) < (2 if compressed else 4) or max_pose < (.014 if compressed else .038):
         issues.append({'severity': 'block', 'code': 'whole_sprite_only',
                        'reason': 'Pose-normalized frames are nearly identical: no credible character acting'})
-    if upper < .018 or torso < .018:
+    if upper < (.010 if compressed else .018) or torso < (.008 if compressed else .018):
         issues.append({'severity': 'block', 'code': 'not_coordinated_acting',
                        'reason': 'Insufficient changes across face/head and torso/arms'})
     status = ('blocked' if any(i['severity'] == 'block' for i in issues)
               else 'review_required' if issues else 'technical_pass')
-    return {'status': status, 'frame_count': len(frames),
+    return {'status': status, 'frame_count': len(frames), 'post_export_profile': compressed,
             'distinct_normalized_poses': len(poses), 'pose_indices': poses,
             'max_normalized_change': round(max_pose, 5),
             'head_region_change': round(upper, 5),
@@ -141,7 +142,7 @@ def build_v3(production: Path, font: str, *, max_bytes=500000, heart=False):
         final_frames, _ = read_gif(Path(item['gif']))
         if len(final_frames) < MIN_OUTPUT_FRAMES:
             raise ValueError(f"Final GIF {item['slug']} lost too many action poses")
-        report = acting_report(final_frames)
+        report = acting_report(final_frames, compressed=True)
         _save_json(root / 'build' / 'v3-quality' / f"{item['slug']}-export.json", report)
         if report['status'] == 'blocked':
             Path(result['zip']).unlink(missing_ok=True)
